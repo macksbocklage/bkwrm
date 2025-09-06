@@ -1,0 +1,21 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = await auth();
+    console.log('Test Auth API - User ID:', userId);
+    
+    return NextResponse.json({ 
+      authenticated: !!userId,
+      userId: userId || 'null',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Auth test error:', error);
+    return NextResponse.json({ 
+      error: 'Auth test failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
