@@ -143,19 +143,15 @@
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   position: relative !important;
-  mix-blend-mode: darken !important;
 }
 
 .epub-highlight-overlay {
   position: absolute !important;
-  background-color: #ffff00 !important;
-  opacity: 0.4 !important;
   pointer-events: auto !important;
   cursor: pointer !important;
   z-index: 10 !important;
   border-radius: 2px !important;
   transition: all 0.2s ease !important;
-  mix-blend-mode: darken !important;
 }
 
 .epub-highlight-overlay:hover {

@@ -295,8 +295,10 @@ export default function TestEpubReader({
                 if (selectionTimeout) {
                   clearTimeout(selectionTimeout);
                 }
-                // Use a single timeout to avoid multiple highlights
-                selectionTimeout = setTimeout(handleTextSelection, 200);
+                // Use multiple timeouts to catch selection at different stages
+                selectionTimeout = setTimeout(handleTextSelection, 100);
+                setTimeout(handleTextSelection, 300);
+                setTimeout(handleTextSelection, 600);
               };
               
               doc.addEventListener('mouseup', (e) => {

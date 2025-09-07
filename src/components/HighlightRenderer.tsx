@@ -101,10 +101,38 @@ export default function HighlightRenderer({
           renderHighlight(highlight);
         });
       }
-    }, 1000); // Check every 1 second for faster response
+    }, 500); // Check every 500ms for faster response
 
     return () => {
       clearInterval(interval);
+    };
+  }, [highlights]);
+
+  // Force re-render highlights when iframe content changes
+  useEffect(() => {
+    if (highlights.length === 0) return;
+
+    const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+    if (!iframe) return;
+
+    const observer = new MutationObserver(() => {
+      console.log('Content changed, re-rendering highlights');
+      setTimeout(() => {
+        highlights.forEach(highlight => {
+          renderHighlight(highlight);
+        });
+      }, 100);
+    });
+
+    if (iframe.contentDocument) {
+      observer.observe(iframe.contentDocument.body, {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    return () => {
+      observer.disconnect();
     };
   }, [highlights]);
 
@@ -169,12 +197,13 @@ export default function HighlightRenderer({
       const highlightOverlay = doc.createElement('div');
       highlightOverlay.className = 'epub-highlight-overlay';
       highlightOverlay.style.position = 'absolute';
-      highlightOverlay.style.backgroundColor = highlight.color;
-      highlightOverlay.style.opacity = '0.4';
+      highlightOverlay.style.backgroundColor = '#ffff00';
+      highlightOverlay.style.opacity = '0.3';
       highlightOverlay.style.pointerEvents = 'auto';
       highlightOverlay.style.cursor = 'pointer';
       highlightOverlay.style.zIndex = '10';
       highlightOverlay.style.borderRadius = '2px';
+      highlightOverlay.style.mixBlendMode = 'multiply';
       highlightOverlay.setAttribute('data-highlight-id', highlight.id);
       highlightOverlay.setAttribute('data-highlight-text', highlight.text);
 
@@ -246,11 +275,21 @@ export default function HighlightRenderer({
 
       if (!found) {
         console.warn('Could not find text to highlight:', highlight.text);
-        // Try again with a delay
+        // Try multiple retry attempts with different delays
         setTimeout(() => {
           console.log('Retrying highlight render for:', highlight.text);
           renderHighlight(highlight);
-        }, 1000);
+        }, 500);
+        
+        setTimeout(() => {
+          console.log('Second retry for highlight:', highlight.text);
+          renderHighlight(highlight);
+        }, 1500);
+        
+        setTimeout(() => {
+          console.log('Final retry for highlight:', highlight.text);
+          renderHighlight(highlight);
+        }, 3000);
       }
     } catch (error) {
       console.warn('Error rendering highlight:', error);
