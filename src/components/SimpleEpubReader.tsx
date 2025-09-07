@@ -101,7 +101,7 @@ export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReader
             <h1 className="font-semibold text-lg">
               {metadata?.title || 'Loading...'}
             </h1>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-black">
               by {metadata?.creator || 'Unknown Author'}
             </p>
           </div>
@@ -160,7 +160,7 @@ export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReader
                   onChange={(e) => setFontSize(Number(e.target.value))}
                   className="w-full"
                 />
-                <span className="text-sm text-gray-600">{fontSize}px</span>
+                <span className="text-sm text-black">{fontSize}px</span>
               </div>
             </div>
           </div>
@@ -218,10 +218,10 @@ export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReader
                 });
               }}
               loadingView={
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                  <BookOpen className="w-12 h-12 animate-pulse mx-auto mb-4 text-gray-400" />
+                <div className="flex flex-col items-center justify-center h-full text-black">
+                  <BookOpen className="w-12 h-12 animate-pulse mx-auto mb-4 text-black" />
                   <p className="text-lg">Loading EPUB...</p>
-                  <p className="text-sm text-gray-400">File: {filePath}</p>
+                  <p className="text-sm text-black">File: {filePath}</p>
                 </div>
               }
               epubOptions={{

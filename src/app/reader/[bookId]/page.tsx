@@ -79,10 +79,10 @@ export default function ReaderPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-black min-h-screen flex items-center justify-center">
-        <div className="text-white flex items-center gap-2">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-          <span>Loading book...</span>
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <div className="text-black flex items-center gap-2">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black"></div>
+          <span>Loading Book...</span>
         </div>
       </div>
     );
@@ -90,9 +90,9 @@ export default function ReaderPage() {
 
   if (error || !book) {
     return (
-      <div className="bg-black min-h-screen flex items-center justify-center">
-        <div className="text-white text-center">
-          <h2 className="text-xl font-bold mb-4">{error || 'Book not found'}</h2>
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <div className="text-black text-center">
+          <h2 className="text-xl font-bold mb-4">{error || 'Book Not Found'}</h2>
           <button
             onClick={handleClose}
             className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"

@@ -41,13 +41,13 @@ export default function TestEpubReader({
               {bookTitle || 'EPUB Reader'}
             </h1>
             {bookAuthor && (
-              <p className="text-sm text-gray-600">by {bookAuthor}</p>
+              <p className="text-sm text-black">by {bookAuthor}</p>
             )}
-            <p className="text-xs text-gray-500">File: {filePath}</p>
+            <p className="text-xs text-black">File: {filePath}</p>
           </div>
           <div className="flex items-center gap-4">
             {progress > 0 && (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-black">
                 Progress: {progress}%
               </div>
             )}
@@ -69,9 +69,9 @@ export default function TestEpubReader({
           loadingView={
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
                 <p>Loading EPUB...</p>
-                <p className="text-sm text-gray-500">File: {filePath}</p>
+                <p className="text-sm text-black">File: {filePath}</p>
               </div>
             </div>
           }

@@ -86,26 +86,26 @@ export default function EpubUpload({ onFileSelect }: EpubUploadProps) {
           <div className="space-y-4">
             <div className="flex items-center justify-center space-x-2">
               <FileText className="w-8 h-8 text-green-400" />
-              <span className="text-white font-medium">{selectedFile.name}</span>
+              <span className="text-black font-medium">{selectedFile.name}</span>
               <button
                 onClick={clearFile}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-black hover:text-black transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-black">
               {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            <Upload className="w-12 h-12 text-gray-400 mx-auto" />
+            <Upload className="w-12 h-12 text-black mx-auto" />
             <div>
-              <p className="text-white font-medium mb-2">
-                Upload an EPUB file
+              <p className="text-black font-medium mb-2">
+                Upload an EPUB File
               </p>
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-black mb-4">
                 Drag and drop your EPUB file here, or click to browse
               </p>
               <button

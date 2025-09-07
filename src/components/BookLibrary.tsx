@@ -63,7 +63,7 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-blue-600">Loading books...</span>
+        <span className="ml-2 text-black">Loading Books...</span>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
   if (error) {
     return (
       <div className="text-center p-8">
-        <p className="text-red-400 mb-4">Error: {error}</p>
+        <p className="text-black mb-4">Error: {error}</p>
         <button 
           onClick={() => window.location.reload()}
           className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors border border-gray-200"
@@ -86,18 +86,18 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
     <div className="w-full mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-black mb-4">Your Library</h2>
+        <h2 className="text-2xl text-black mb-4 font-inter tracking-tighter">Recently Read</h2>
         
         {/* Search and View Controls */}
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-4 h-4" />
             <input
               type="text"
-              placeholder="Search books..."
+              placeholder="Search Books..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-md text-black placeholder-gray-500 focus:outline-none focus:border-blue-500"
             />
           </div>
           
@@ -107,7 +107,7 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
               className={`p-2 rounded-md transition-colors ${
                 viewMode === 'grid' 
                   ? 'bg-white text-black border border-gray-200' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
+                  : 'bg-gray-100 text-black hover:bg-gray-200 border border-transparent'
               }`}
             >
               <Grid className="w-4 h-4" />
@@ -117,7 +117,7 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
               className={`p-2 rounded-md transition-colors ${
                 viewMode === 'list' 
                   ? 'bg-white text-black border border-gray-200' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
+                  : 'bg-gray-100 text-black hover:bg-gray-200 border border-transparent'
               }`}
             >
               <List className="w-4 h-4" />
@@ -129,11 +129,11 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
       {/* Books Display */}
       {filteredBooks.length === 0 ? (
         <div className="text-center py-12">
-          <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">
+          <BookOpen className="w-16 h-16 text-black mx-auto mb-4" />
+          <p className="text-black text-lg">
             {searchTerm ? 'No books match your search.' : 'No books in your library yet.'}
           </p>
-          <p className="text-gray-700 text-sm mt-2">
+          <p className="text-black text-sm mt-2">
             {searchTerm ? 'Try a different search term.' : 'Upload your first EPUB book to get started.'}
           </p>
         </div>
@@ -154,31 +154,31 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate" title={book.title}>
+                      <h3 className="font-semibold text-black truncate font-inter" title={book.title}>
                         {book.title}
                       </h3>
-                      <p className="text-sm text-gray-600 truncate" title={book.author}>
+                      <p className="text-sm text-black truncate font-inter tracking-tighter" title={book.author}>
                         {book.author}
                       </p>
                     </div>
                     <button
                       onClick={() => handleDelete(book.id)}
                       disabled={deletingId === book.id}
-                      className="text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
+                      className="text-black hover:text-black transition-colors disabled:opacity-50"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-gray-600">
+                    <div className="flex items-center justify-between text-xs text-black">
                       <span>{formatFileSize(book.file_size)}</span>
                       <span>{formatDate(book.uploaded_at)}</span>
                     </div>
                     
                     {book.reading_progress > 0 && (
                       <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-gray-600">
+                        <div className="flex justify-between text-xs text-black">
                           <span>Progress</span>
                           <span>{book.reading_progress}%</span>
                         </div>
@@ -205,18 +205,18 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                 <>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <BookOpen className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                      <BookOpen className="w-5 h-5 text-black flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate" title={book.title}>
+                        <h3 className="font-semibold text-black truncate font-inter" title={book.title}>
                           {book.title}
                         </h3>
-                        <p className="text-sm text-gray-600 truncate" title={book.author}>
+                        <p className="text-sm text-black truncate font-inter tracking-tighter" title={book.author}>
                           {book.author}
                         </p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
+                    <div className="flex items-center gap-4 mt-2 text-xs text-black">
                       <span className="flex items-center gap-1">
                         <FileText className="w-3 h-3" />
                         {formatFileSize(book.file_size)}
@@ -234,14 +234,14 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onBookSelect(book)}
-                      className="bg-white text-black py-1 px-3 rounded-md hover:bg-gray-200 transition-colors text-sm border border-gray-200"
+                      className="bg-white font-inter tracking-tighter text-black py-1 px-3 rounded-md hover:bg-gray-200 transition-colors text-sm border border-gray-200"
                     >
                       Read
                     </button>
                     <button
                       onClick={() => handleDelete(book.id)}
                       disabled={deletingId === book.id}
-                      className="text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50 p-1"
+                      className="text-black hover:text-black transition-colors disabled:opacity-50 p-1"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

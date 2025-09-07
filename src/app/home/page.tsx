@@ -19,9 +19,9 @@ export default function Home() {
   if (!isSignedIn) {
     return (
       <div className="bg-gray-50 min-h-screen flex items-center justify-center font-geist-sans">
-        <div className="text-gray-900 text-center">
-          <h1 className="text-2xl font-bold mb-4">Please sign in to access the dashboard</h1>
-          <a href="/" className="text-blue-600 hover:underline">Sign in</a>
+        <div className="text-black text-center">
+          <h1 className="text-2xl font-bold mb-4 font-editors-note">Please Sign In to Access the Dashboard</h1>
+          <a href="/" className="text-black hover:underline">Sign In</a>
         </div>
       </div>
     );
@@ -52,18 +52,19 @@ export default function Home() {
     router.push(`/reader/${book.id}`);
   };
 
+
   return (
-    <div className="bg-gray-50 min-h-screen font-geist-sans">
+    <div className="bg-white min-h-screen font-geist-sans">
       <header className="border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-semibold text-gray-900">BKWRM</h1>
+            <h1 className="text-xl font-semibold text-black font-editors-note">BKWRM</h1>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setShowUpload(!showUpload)}
-                className="bg-white text-gray-800 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors border border-gray-300"
+                className="bg-white text-black font-editors-note px-4 py-2 rounded-md hover:bg-gray-100 transition-colors border border-gray-300"
               >
-                {showUpload ? 'View Library' : 'Upload Book'}
+                {showUpload ? 'View Library' : 'upload'}
               </button>
               <UserButton afterSignOutUrl="/" />
             </div>
@@ -72,15 +73,17 @@ export default function Home() {
       </header>
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-gray-900">
-          <h2 className="text-3xl font-bold mb-4">Welcome, {user?.firstName || user?.emailAddresses[0].emailAddress}!</h2>
-          <p className="text-gray-600 mb-8">Manage your EPUB library and enjoy intelligent reading.</p>
+        <div className="text-">
+          <h2 className="text-3xl mb-4 font-editors-note">
+            Welcome Home, {user?.firstName ? <strong>{user.firstName}</strong> : user?.emailAddresses[0].emailAddress}.
+          </h2>
+          <p className="text-black mb-8 font-inter tracking-tighter">What will we read today?</p>
           
           {showUpload ? (
             <div className="bg-white rounded-lg p-8 border border-gray-200">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-semibold mb-2">Upload Your EPUB</h3>
-                <p className="text-gray-600">Select an EPUB file to begin reading with our enhanced reader experience.</p>
+                <h3 className="text-2xl font-semibold mb-2 font-editors-note">Upload Your EPUB</h3>
+                <p className="text-black">Select an EPUB file to begin reading with our enhanced reader experience.</p>
               </div>
 
               {uploadError && (
@@ -93,8 +96,8 @@ export default function Home() {
 
               {isUploading && (
                 <div className="mt-6 text-center">
-                  <div className="inline-flex items-center text-blue-600">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  <div className="inline-flex items-center text-black">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
                     <span>Uploading and processing your EPUB...</span>
                   </div>
                 </div>
