@@ -2,7 +2,9 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import TestEpubReader from '@/components/TestEpubReader';
+import PageTransition from '@/components/PageTransition';
 import { Book } from '@/lib/types';
 import { useBooks } from '@/hooks/useBooks';
 
@@ -79,28 +81,64 @@ export default function ReaderPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <div className="text-black flex items-center gap-2">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black"></div>
+      <PageTransition className="bg-white min-h-screen flex items-center justify-center">
+        <motion.div 
+          className="text-black flex items-center gap-2"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ 
+            type: "spring",
+            stiffness: 400,
+            damping: 20,
+            mass: 0.8
+          }}
+        >
+          <motion.div 
+            className="animate-spin rounded-full h-6 w-6 border-b-2 border-black"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          />
           <span>Loading Book...</span>
-        </div>
-      </div>
+        </motion.div>
+      </PageTransition>
     );
   }
 
   if (error || !book) {
     return (
-      <div className="bg-white min-h-screen flex items-center justify-center">
-        <div className="text-black text-center">
-          <h2 className="text-xl font-bold mb-4">{error || 'Book Not Found'}</h2>
-          <button
+      <PageTransition className="bg-white min-h-screen flex items-center justify-center">
+        <motion.div 
+          className="text-black text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ 
+            type: "spring",
+            stiffness: 400,
+            damping: 20,
+            mass: 0.8
+          }}
+        >
+          <motion.h2 
+            className="text-xl font-bold mb-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
+            {error || 'Book Not Found'}
+          </motion.h2>
+          <motion.button
             onClick={handleClose}
             className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             Return to Home
-          </button>
-        </div>
-      </div>
+          </motion.button>
+        </motion.div>
+      </PageTransition>
     );
   }
 
@@ -111,6 +149,7 @@ export default function ReaderPage() {
       onProgressUpdate={handleProgressUpdate}
       bookTitle={book.title}
       bookAuthor={book.author}
+      bookId={book.id}
     />
   );
 }

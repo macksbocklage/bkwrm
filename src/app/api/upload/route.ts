@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto';
 import { auth } from '@clerk/nextjs/server';
 
 // Robust EPUB metadata extraction using proper ZIP parsing
-async function extractEpubMetadata(file: File): Promise<{ title: string; author: string }> {
+async function extractEpubMetadata(file: File): Promise<{ title: string; author: string; coverImageUrl: string | null }> {
   try {
     const arrayBuffer = await file.arrayBuffer();
     
@@ -55,12 +55,16 @@ async function extractEpubMetadata(file: File): Promise<{ title: string; author:
     const title = extractFromOpf(opfContent, 'title') || parseFilenameForMetadata(file.name).title;
     const author = extractFromOpf(opfContent, 'creator') || parseFilenameForMetadata(file.name).author;
     
-    console.log('Extracted metadata:', { title, author, filename: file.name });
+    // Extract cover image
+    const coverImageUrl = await extractCoverImageFromEpub(zipFile, opfContent, opfPath);
     
-    return { title, author };
+    console.log('Extracted metadata:', { title, author, coverImageUrl, filename: file.name });
+    
+    return { title, author, coverImageUrl };
   } catch (error) {
     console.error('Error extracting EPUB metadata:', error);
-    return parseFilenameForMetadata(file.name);
+    const fallback = parseFilenameForMetadata(file.name);
+    return { ...fallback, coverImageUrl: null };
   }
 }
 
@@ -96,6 +100,108 @@ function extractFromOpf(opfContent: string, type: 'title' | 'creator'): string |
   }
   
   return null;
+}
+
+// Extract cover image from EPUB
+async function extractCoverImageFromEpub(zipFile: any, opfContent: string, opfPath: string): Promise<string | null> {
+  try {
+    // Extract cover image path from OPF
+    const coverImagePath = extractCoverFromOpf(opfContent, opfPath);
+    
+    if (!coverImagePath || !zipFile.files[coverImagePath]) {
+      console.log('No cover image found in EPUB');
+      return null;
+    }
+    
+    // Get the cover image file
+    const coverImageFile = zipFile.files[coverImagePath];
+    const coverImageBuffer = await coverImageFile.async('arraybuffer');
+    
+    // Generate unique filename for cover image
+    const coverId = Math.random().toString(36).substring(2, 15);
+    const coverFileName = `cover_${coverId}.${getImageExtension(coverImagePath)}`;
+    
+    // Upload cover image to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin!.storage
+      .from('book-covers')
+      .upload(coverFileName, coverImageBuffer, {
+        contentType: getImageMimeType(coverImagePath),
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Cover upload error:', uploadError);
+      return null;
+    }
+
+    // Get public URL for the cover image
+    const { data: urlData } = supabaseAdmin!.storage
+      .from('book-covers')
+      .getPublicUrl(coverFileName);
+
+    return urlData.publicUrl;
+    
+  } catch (error) {
+    console.error('Error extracting cover image:', error);
+    return null;
+  }
+}
+
+// Extract cover image path from OPF content
+function extractCoverFromOpf(opfContent: string, opfPath: string): string | null {
+  // Look for cover image in manifest
+  const manifestMatch = opfContent.match(/<item[^>]*id=["']cover-image["'][^>]*href=["']([^"']+)["'][^>]*>/i);
+  if (manifestMatch) {
+    const coverPath = manifestMatch[1];
+    // Resolve relative path
+    const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/') + 1);
+    return opfDir + coverPath;
+  }
+  
+  // Look for cover image in guide
+  const guideMatch = opfContent.match(/<reference[^>]*type=["']cover["'][^>]*title=["']Cover["'][^>]*href=["']([^"']+)["'][^>]*>/i);
+  if (guideMatch) {
+    const coverPath = guideMatch[1];
+    const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/') + 1);
+    return opfDir + coverPath;
+  }
+  
+  // Look for common cover image filenames
+  const commonCoverNames = [
+    'cover.jpg', 'cover.jpeg', 'cover.png', 'cover.gif',
+    'cover-image.jpg', 'cover-image.jpeg', 'cover-image.png',
+    'titlepage.jpg', 'titlepage.jpeg', 'titlepage.png'
+  ];
+  
+  for (const coverName of commonCoverNames) {
+    const coverMatch = opfContent.match(new RegExp(`<item[^>]*href=["']([^"']*${coverName})["'][^>]*>`, 'i'));
+    if (coverMatch) {
+      const coverPath = coverMatch[1];
+      const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/') + 1);
+      return opfDir + coverPath;
+    }
+  }
+  
+  return null;
+}
+
+// Get image extension from path
+function getImageExtension(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase();
+  return ext || 'jpg';
+}
+
+// Get MIME type from image extension
+function getImageMimeType(path: string): string {
+  const ext = getImageExtension(path);
+  const mimeTypes: { [key: string]: string } = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp'
+  };
+  return mimeTypes[ext] || 'image/jpeg';
 }
 
 // Parse filename to extract title and author as fallback
@@ -161,7 +267,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract metadata from EPUB
-    const { title, author } = await extractEpubMetadata(file);
+    const { title, author, coverImageUrl } = await extractEpubMetadata(file);
 
     // Generate unique filename for storage
     const fileId = randomUUID();
@@ -201,7 +307,8 @@ export async function POST(request: NextRequest) {
       author,
       file_url: urlData.publicUrl,
       file_size: file.size,
-      original_filename: file.name
+      original_filename: file.name,
+      cover_image_url: coverImageUrl
     };
     
     console.log('Inserting book data:', bookDataToInsert);

@@ -11,6 +11,8 @@ interface UseBooksReturn {
   deleteBook: (bookId: string) => Promise<boolean>;
   updateBook: (bookId: string, data: UpdateBookData) => Promise<boolean>;
   refreshBooks: () => Promise<void>;
+  extractCover: (bookId: string) => Promise<boolean>;
+  uploadCover: (bookId: string, file: File) => Promise<boolean>;
 }
 
 export function useBooks(): UseBooksReturn {
@@ -135,6 +137,78 @@ export function useBooks(): UseBooksReturn {
     }
   }, []);
 
+  // Extract cover image for a book
+  const extractCover = useCallback(async (bookId: string): Promise<boolean> => {
+    try {
+      setError(null);
+      
+      const response = await fetch(`/api/books/${bookId}/cover`, {
+        method: 'GET',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to extract cover');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.coverImageUrl) {
+        // Update the book in the local state
+        setBooks(prev => 
+          prev.map(book => 
+            book.id === bookId ? { ...book, cover_image_url: data.coverImageUrl } : book
+          )
+        );
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error('Error extracting cover:', err);
+      setError(err instanceof Error ? err.message : 'Failed to extract cover');
+      return false;
+    }
+  }, []);
+
+  // Upload a new cover image for a book
+  const uploadCover = useCallback(async (bookId: string, file: File): Promise<boolean> => {
+    try {
+      setError(null);
+      
+      const formData = new FormData();
+      formData.append('cover', file);
+      
+      const response = await fetch(`/api/books/${bookId}/cover/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload cover');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.coverImageUrl) {
+        // Update the book in the local state
+        setBooks(prev => 
+          prev.map(book => 
+            book.id === bookId ? { ...book, cover_image_url: data.coverImageUrl } : book
+          )
+        );
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error('Error uploading cover:', err);
+      setError(err instanceof Error ? err.message : 'Failed to upload cover');
+      return false;
+    }
+  }, []);
+
   // Refresh books (useful for manual refresh)
   const refreshBooks = useCallback(async () => {
     await fetchBooks();
@@ -153,5 +227,7 @@ export function useBooks(): UseBooksReturn {
     deleteBook,
     updateBook,
     refreshBooks,
+    extractCover,
+    uploadCover,
   };
 }

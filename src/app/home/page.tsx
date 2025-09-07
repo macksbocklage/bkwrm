@@ -3,8 +3,10 @@
 import { UserButton, useUser } from '@clerk/nextjs';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import EpubUpload from '@/components/EpubUpload';
 import BookLibrary from '@/components/BookLibrary';
+import PageTransition from '@/components/PageTransition';
 import { useBooks } from '@/hooks/useBooks';
 import { Book } from '@/lib/types';
 
@@ -54,60 +56,157 @@ export default function Home() {
 
 
   return (
-    <div className="bg-white min-h-screen font-geist-sans">
-      <header className="border-b border-gray-200">
+    <PageTransition className="bg-white min-h-screen font-geist-sans">
+      <motion.header 
+        className="border-b border-gray-200"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ 
+          type: "spring",
+          stiffness: 300,
+          damping: 25,
+          mass: 1
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-xl font-semibold text-black font-editors-note">BKWRM</h1>
+            <motion.h1 
+              className="text-xl font-semibold text-black font-editors-note"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+            >
+              BKWRM
+            </motion.h1>
             <div className="flex items-center gap-4">
-              <button
+              <motion.button
                 onClick={() => setShowUpload(!showUpload)}
                 className="bg-white text-black font-editors-note px-4 py-2 rounded-md hover:bg-gray-100 transition-colors border border-gray-300"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 {showUpload ? 'View Library' : 'upload'}
-              </button>
-              <UserButton afterSignOutUrl="/" />
+              </motion.button>
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+              >
+                <UserButton afterSignOutUrl="/" />
+              </motion.div>
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-">
-          <h2 className="text-3xl mb-4 font-editors-note">
+        <motion.div 
+          className="text-"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <motion.h2 
+            className="text-3xl mb-4 font-editors-note"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+          >
             Welcome Home, {user?.firstName ? <strong>{user.firstName}</strong> : user?.emailAddresses[0].emailAddress}.
-          </h2>
-          <p className="text-black mb-8 font-inter tracking-tighter">What will we read today?</p>
+          </motion.h2>
+          <motion.p 
+            className="text-black mb-8 font-inter tracking-tighter"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+          >
+            What will we read today?
+          </motion.p>
           
-          {showUpload ? (
-            <div className="bg-white rounded-lg p-8 border border-gray-200">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-semibold mb-2 font-editors-note">Upload Your EPUB</h3>
-                <p className="text-black">Select an EPUB file to begin reading with our enhanced reader experience.</p>
-              </div>
+          <AnimatePresence mode="wait">
+            {showUpload ? (
+              <motion.div 
+                key="upload"
+                className="bg-white rounded-lg p-8 border border-gray-200"
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 500,
+                  damping: 15,
+                  mass: 0.6
+                }}
+              >
+                <motion.div 
+                  className="text-center mb-8"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.4 }}
+                >
+                  <h3 className="text-2xl font-semibold mb-2 font-editors-note">Upload Your EPUB</h3>
+                  <p className="text-black">Select an EPUB file to begin reading with our enhanced reader experience.</p>
+                </motion.div>
 
-              {uploadError && (
-                <div className="mb-6 p-4 bg-red-100 border border-red-300 rounded-md">
-                  <p className="text-red-800">{uploadError}</p>
-                </div>
-              )}
+                <AnimatePresence>
+                  {uploadError && (
+                    <motion.div 
+                      className="mb-6 p-4 bg-red-100 border border-red-300 rounded-md"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <p className="text-red-800">{uploadError}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-              <EpubUpload onFileSelect={handleFileSelect} />
+                <EpubUpload onFileSelect={handleFileSelect} />
 
-              {isUploading && (
-                <div className="mt-6 text-center">
-                  <div className="inline-flex items-center text-black">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
-                    <span>Uploading and processing your EPUB...</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <BookLibrary onBookSelect={handleBookSelect} />
-          )}
-        </div>
+                <AnimatePresence>
+                  {isUploading && (
+                    <motion.div 
+                      className="mt-6 text-center"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="inline-flex items-center text-black">
+                        <motion.div 
+                          className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        />
+                        <span>Uploading and processing your EPUB...</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="library"
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 500,
+                  damping: 15,
+                  mass: 0.6
+                }}
+              >
+                <BookLibrary onBookSelect={handleBookSelect} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </main>
-    </div>
+    </PageTransition>
   );
 }

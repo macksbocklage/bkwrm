@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ReactReader } from 'react-reader';
 import { ChevronLeft, ChevronRight, Menu, Settings, BookOpen, X } from 'lucide-react';
 
@@ -8,6 +9,52 @@ interface SimpleEpubReaderProps {
   filePath: string;
   onClose: () => void;
 }
+
+// Animation variants
+const sidebarVariants = {
+  hidden: {
+    x: -320,
+    opacity: 0
+  },
+  visible: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 500,
+      damping: 15,
+      mass: 0.6
+    }
+  },
+  exit: {
+    x: -320,
+    opacity: 0,
+    transition: {
+      type: "spring",
+      stiffness: 600,
+      damping: 10,
+      mass: 0.5
+    }
+  }
+};
+
+const overlayVariants = {
+  hidden: {
+    opacity: 0
+  },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.2
+    }
+  },
+  exit: {
+    opacity: 0,
+    transition: {
+      duration: 0.2
+    }
+  }
+};
 
 export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReaderProps) {
   const [isLoading, setIsLoading] = useState(true);
@@ -59,130 +106,246 @@ export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReader
 
   if (error) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-        <div className="text-white text-center max-w-md mx-auto p-6">
-          <h2 className="text-xl font-bold mb-4 text-red-400">Error Loading EPUB</h2>
-          <p className="mb-4">{error}</p>
-          <div className="flex gap-4 justify-center">
-            <button
+      <motion.div 
+        className="fixed inset-0 bg-black flex items-center justify-center z-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ 
+          type: "spring",
+          stiffness: 400,
+          damping: 20,
+          mass: 0.8
+        }}
+      >
+        <motion.div 
+          className="text-white text-center max-w-md mx-auto p-6"
+          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ 
+            type: "spring",
+            stiffness: 500,
+            damping: 15,
+            mass: 0.6
+          }}
+        >
+          <motion.h2 
+            className="text-xl font-bold mb-4 text-red-400"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
+            Error Loading EPUB
+          </motion.h2>
+          <motion.p 
+            className="mb-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.3 }}
+          >
+            {error}
+          </motion.p>
+          <motion.div 
+            className="flex gap-4 justify-center"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.3 }}
+          >
+            <motion.button
               onClick={() => {
                 setError(null);
                 setIsLoading(true);
                 window.location.reload();
               }}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               Retry
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={onClose}
               className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               Close
-            </button>
-          </div>
-        </div>
-      </div>
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
+    <motion.div 
+      className="fixed inset-0 bg-white z-50 flex flex-col"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
       {/* Header */}
-      <header className="bg-gray-100 border-b border-gray-300 p-4 flex items-center justify-between">
+      <motion.header 
+        className="bg-gray-100 border-b border-gray-300 p-4 flex items-center justify-between"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
         <div className="flex items-center space-x-4">
-          <button
+          <motion.button
             onClick={() => setShowToc(!showToc)}
             className="p-2 hover:bg-gray-200 rounded-md transition-colors"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
             <Menu className="w-5 h-5" />
-          </button>
-          <div>
+          </motion.button>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+          >
             <h1 className="font-semibold text-lg">
               {metadata?.title || 'Loading...'}
             </h1>
             <p className="text-sm text-black">
               by {metadata?.creator || 'Unknown Author'}
             </p>
-          </div>
+          </motion.div>
         </div>
         
         <div className="flex items-center space-x-2">
-          <button
+          <motion.button
             onClick={() => setShowSettings(!showSettings)}
             className="p-2 hover:bg-gray-200 rounded-md transition-colors"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
             <Settings className="w-5 h-5" />
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={onClose}
             className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             Close
-          </button>
+          </motion.button>
         </div>
-      </header>
+      </motion.header>
 
       <div className="flex flex-1">
         {/* Table of Contents Sidebar */}
-        {showToc && (
-          <div className="w-80 bg-gray-50 border-r border-gray-300 overflow-y-auto">
-            <div className="p-4">
-              <h3 className="font-semibold mb-4">Table of Contents</h3>
-              <div className="space-y-1">
-                {toc.map((item, index) => (
-                  <button
-                    key={index}
-                    onClick={() => goToChapter(item.href)}
-                    className="block w-full text-left p-2 hover:bg-gray-200 rounded-md transition-colors"
-                    style={{ paddingLeft: `${(item.level || 0) * 16 + 8}px` }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+        <AnimatePresence>
+          {showToc && (
+            <motion.div 
+              className="w-80 bg-gray-50 border-r border-gray-300 overflow-y-auto"
+              variants={sidebarVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <div className="p-4">
+                <motion.h3 
+                  className="font-semibold mb-4"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.3 }}
+                >
+                  Table of Contents
+                </motion.h3>
+                <div className="space-y-1">
+                  {toc.map((item, index) => (
+                    <motion.button
+                      key={index}
+                      onClick={() => goToChapter(item.href)}
+                      className="block w-full text-left p-2 hover:bg-gray-200 rounded-md transition-colors"
+                      style={{ paddingLeft: `${(item.level || 0) * 16 + 8}px` }}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + index * 0.05, duration: 0.3 }}
+                      whileHover={{ x: 4 }}
+                    >
+                      {item.label}
+                    </motion.button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Settings Panel */}
-        {showSettings && (
-          <div className="w-80 bg-gray-50 border-r border-gray-300 p-4">
-            <h3 className="font-semibold mb-4">Settings</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Font Size</label>
-                <input
-                  type="range"
-                  min="12"
-                  max="24"
-                  value={fontSize}
-                  onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="w-full"
-                />
-                <span className="text-sm text-black">{fontSize}px</span>
-              </div>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {showSettings && (
+            <motion.div 
+              className="w-80 bg-gray-50 border-r border-gray-300 p-4"
+              variants={sidebarVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <motion.h3 
+                className="font-semibold mb-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
+              >
+                Settings
+              </motion.h3>
+              <motion.div 
+                className="space-y-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                <div>
+                  <label className="block text-sm font-medium mb-2">Font Size</label>
+                  <input
+                    type="range"
+                    min="12"
+                    max="24"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full"
+                  />
+                  <span className="text-sm text-black">{fontSize}px</span>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Main Reading Area */}
-        <div className="flex-1 flex flex-col">
+        <motion.div 
+          className="flex-1 flex flex-col"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+        >
           {/* Navigation Controls */}
-          <div className="bg-gray-100 border-b border-gray-300 p-2 flex justify-center space-x-4">
-            <button
+          <motion.div 
+            className="bg-gray-100 border-b border-gray-300 p-2 flex justify-center space-x-4"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.3 }}
+          >
+            <motion.button
               onClick={() => navigateChapter('prev')}
               className="p-2 hover:bg-gray-200 rounded-md transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
               <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => navigateChapter('next')}
               className="p-2 hover:bg-gray-200 rounded-md transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
               <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
           {/* Reader Content */}
           <div className="flex-1 overflow-hidden">
@@ -218,19 +381,55 @@ export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReader
                 });
               }}
               loadingView={
-                <div className="flex flex-col items-center justify-center h-full text-black">
-                  <BookOpen className="w-12 h-12 animate-pulse mx-auto mb-4 text-black" />
-                  <p className="text-lg">Loading EPUB...</p>
-                  <p className="text-sm text-black">File: {filePath}</p>
-                </div>
+                <motion.div 
+                  className="flex flex-col items-center justify-center h-full text-black"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ 
+            type: "spring",
+            stiffness: 500,
+            damping: 15,
+            mass: 0.6
+          }}
+                >
+                  <motion.div
+                    animate={{ 
+                      rotate: [0, 360],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{ 
+                      duration: 2, 
+                      repeat: Infinity, 
+                      ease: "easeInOut" 
+                    }}
+                  >
+                    <BookOpen className="w-12 h-12 mx-auto mb-4 text-black" />
+                  </motion.div>
+                  <motion.p 
+                    className="text-lg"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.3 }}
+                  >
+                    Loading EPUB...
+                  </motion.p>
+                  <motion.p 
+                    className="text-sm text-black"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4, duration: 0.3 }}
+                  >
+                    File: {filePath}
+                  </motion.p>
+                </motion.div>
               }
               epubOptions={{
                 allowScriptedContent: true,
               }}
             />
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

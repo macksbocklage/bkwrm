@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Book } from '@/lib/types';
 import { useBooks } from '@/hooks/useBooks';
 import { 
@@ -11,18 +12,80 @@ import {
   Download,
   Search,
   Grid,
-  List
+  List,
+  MoreVertical,
+  Image
 } from 'lucide-react';
 
 interface BookLibraryProps {
   onBookSelect: (book: Book) => void;
 }
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const bookCardVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 20,
+    scale: 0.95
+  },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    scale: 1
+  },
+  hover: {
+    y: -4,
+    scale: 1.02
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.8,
+    y: -20
+  }
+};
+
+const menuVariants = {
+  hidden: { 
+    opacity: 0, 
+    scale: 0.8,
+    x: 20,
+    y: -20
+  },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    x: 0,
+    y: 0
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.8,
+    x: 20,
+    y: -20
+  }
+};
+
 export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
-  const { books, loading, error, deleteBook, updateBook } = useBooks();
+  const { books, loading, error, deleteBook, updateBook, uploadCover } = useBooks();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [uploadingCoverId, setUploadingCoverId] = useState<string | null>(null);
+  const [pendingCoverUpload, setPendingCoverUpload] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredBooks = books.filter(book =>
     book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,6 +112,89 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
       last_read_at: new Date().toISOString()
     });
   };
+
+  const handleChangeCover = (bookId: string) => {
+    // Store the book ID for the file upload and close menu
+    setPendingCoverUpload(bookId);
+    setOpenMenuId(null);
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    
+    // Find the book ID from the pending upload
+    const bookId = pendingCoverUpload;
+    if (!bookId) return;
+
+    // If no file selected, clear pending upload
+    if (!file) {
+      setPendingCoverUpload(null);
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      alert('File too large. Please select an image smaller than 5MB.');
+      return;
+    }
+
+    setUploadingCoverId(bookId);
+    const success = await uploadCover(bookId, file);
+    setUploadingCoverId(null);
+    setPendingCoverUpload(null);
+
+    if (success) {
+      // Cover uploaded successfully
+    } else {
+      alert('Failed to upload cover image. Please try again.');
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const toggleMenu = (bookId: string) => {
+    setOpenMenuId(openMenuId === bookId ? null : bookId);
+  };
+
+  const closeMenu = () => {
+    setOpenMenuId(null);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        closeMenu();
+      }
+    };
+
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openMenuId]);
+
+  // Trigger file input when there's a pending cover upload
+  useEffect(() => {
+    if (pendingCoverUpload && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }, [pendingCoverUpload]);
+
 
   const formatFileSize = (bytes: number) => {
     const mb = bytes / (1024 * 1024);
@@ -84,6 +230,15 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
 
   return (
     <div className="w-full mx-auto">
+      {/* Hidden file input for cover uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl text-black mb-4 font-inter tracking-tighter">Recently Read</h2>
@@ -128,30 +283,88 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
 
       {/* Books Display */}
       {filteredBooks.length === 0 ? (
-        <div className="text-center py-12">
-          <BookOpen className="w-16 h-16 text-black mx-auto mb-4" />
-          <p className="text-black text-lg">
+        <motion.div 
+          className="text-center py-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            <BookOpen className="w-16 h-16 text-black mx-auto mb-4" />
+          </motion.div>
+          <motion.p 
+            className="text-black text-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+          >
             {searchTerm ? 'No books match your search.' : 'No books in your library yet.'}
-          </p>
-          <p className="text-black text-sm mt-2">
+          </motion.p>
+          <motion.p 
+            className="text-black text-sm mt-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+          >
             {searchTerm ? 'Try a different search term.' : 'Upload your first EPUB book to get started.'}
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
       ) : (
-        <div className={viewMode === 'grid' 
-          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-          : 'space-y-4'
-        }>
-          {filteredBooks.map((book) => (
-            <div
-              key={book.id}
-              className={`bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors ${
-                viewMode === 'list' ? 'flex items-center p-4' : 'p-4'
-              }`}
-            >
+        <motion.div 
+          className={viewMode === 'grid' 
+            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
+            : 'space-y-4'
+          }
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredBooks.map((book) => (
+              <motion.div
+                key={book.id}
+                variants={bookCardVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                whileHover="hover"
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 20,
+                  mass: 0.8
+                }}
+                className={`bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors ${
+                  viewMode === 'list' ? 'flex items-center p-4' : 'p-4'
+                }`}
+              >
               {viewMode === 'grid' ? (
                 // Grid view
                 <div className="space-y-3">
+                  {/* Book Cover */}
+                  <div className="aspect-[2/3] bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
+                    {book.cover_image_url ? (
+                      <img
+                        src={book.cover_image_url}
+                        alt={`${book.title} cover`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to book icon if image fails to load
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`${book.cover_image_url ? 'hidden' : ''} flex flex-col items-center justify-center text-gray-400`}>
+                      <BookOpen className="w-12 h-12 mb-2" />
+                      <span className="text-xs text-center px-2">No Cover</span>
+                    </div>
+                  </div>
+                  
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-black truncate font-inter" title={book.title}>
@@ -161,13 +374,93 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                         {book.author}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleDelete(book.id)}
-                      disabled={deletingId === book.id}
-                      className="text-black hover:text-black transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="relative" ref={menuRef}>
+                      <motion.button
+                        onClick={() => toggleMenu(book.id)}
+                        className="text-black hover:text-gray-600 transition-colors p-1"
+                        whileHover={{ scale: 1.1, rotate: 90 }}
+                        whileTap={{ scale: 0.9 }}
+                        animate={openMenuId === book.id ? { rotate: 90 } : { rotate: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </motion.button>
+                      
+                      <AnimatePresence>
+                        {openMenuId === book.id && (
+                          <motion.div 
+                            className="absolute right-0 top-8 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[160px]"
+                            variants={menuVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            transition={{
+                              type: "spring",
+                              stiffness: 500,
+                              damping: 35,
+                              mass: 1.2
+                            }}
+                          >
+                            <motion.button
+                              onClick={() => handleChangeCover(book.id)}
+                              disabled={uploadingCoverId === book.id || deletingId === book.id}
+                              className="w-full px-4 py-2 text-left text-sm text-black hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
+                              whileHover={{ backgroundColor: "rgba(0,0,0,0.05)" }}
+                              whileTap={{ scale: 0.98 }}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ 
+                                delay: 0.1, 
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 20,
+                                mass: 0.8
+                              }}
+                            >
+                              <motion.div
+                              initial={{ opacity: 0, x: 15, scale: 0.8 }}
+                              animate={{ opacity: 1, x: 0, scale: 1 }}
+                              transition={{ 
+                                delay: 0.02, 
+                                duration: 0.1
+                              }}
+                              >
+                                <Image className="w-4 h-4" />
+                              </motion.div>
+                              {uploadingCoverId === book.id ? 'Uploading...' : 'Change Cover'}
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handleDelete(book.id)}
+                              disabled={deletingId === book.id || uploadingCoverId === book.id}
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                              whileHover={{ backgroundColor: "rgba(239, 68, 68, 0.05)" }}
+                              whileTap={{ scale: 0.98 }}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ 
+                                delay: 0.2, 
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 20,
+                                mass: 0.8
+                              }}
+                            >
+                              <motion.div
+                              initial={{ opacity: 0, x: 15, scale: 0.8 }}
+                              animate={{ opacity: 1, x: 0, scale: 1 }}
+                              transition={{ 
+                                delay: 0.02, 
+                                duration: 0.1
+                              }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </motion.div>
+                              {deletingId === book.id ? 'Deleting...' : 'Delete Book'}
+                            </motion.button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
@@ -183,29 +476,50 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                           <span>{book.reading_progress}%</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-1">
-                          <div 
-                            className="bg-blue-500 h-1 rounded-full transition-all"
-                            style={{ width: `${book.reading_progress}%` }}
+                          <motion.div 
+                            className="bg-blue-500 h-1 rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${book.reading_progress}%` }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
                           />
                         </div>
                       </div>
                     )}
                   </div>
                   
-                  <button
+                  <motion.button
                     onClick={() => onBookSelect(book)}
                     className="w-full bg-white text-black py-2 px-4 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 border border-gray-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <BookOpen className="w-4 h-4" />
                     Read Book
-                  </button>
+                  </motion.button>
                 </div>
               ) : (
                 // List view
                 <>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <BookOpen className="w-5 h-5 text-black flex-shrink-0" />
+                      {/* Book Cover - Small */}
+                      <div className="w-12 h-16 bg-gray-100 rounded flex-shrink-0 overflow-hidden flex items-center justify-center">
+                        {book.cover_image_url ? (
+                          <img
+                            src={book.cover_image_url}
+                            alt={`${book.title} cover`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <div className={`${book.cover_image_url ? 'hidden' : ''} flex items-center justify-center text-gray-400`}>
+                          <BookOpen className="w-6 h-6" />
+                        </div>
+                      </div>
+                      
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-black truncate font-inter" title={book.title}>
                           {book.title}
@@ -232,25 +546,108 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <button
+                    <motion.button
                       onClick={() => onBookSelect(book)}
                       className="bg-white font-inter tracking-tighter text-black py-1 px-3 rounded-md hover:bg-gray-200 transition-colors text-sm border border-gray-200"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       Read
-                    </button>
-                    <button
-                      onClick={() => handleDelete(book.id)}
-                      disabled={deletingId === book.id}
-                      className="text-black hover:text-black transition-colors disabled:opacity-50 p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    </motion.button>
+                    <div className="relative" ref={menuRef}>
+                      <motion.button
+                        onClick={() => toggleMenu(book.id)}
+                        className="text-black hover:text-gray-600 transition-colors p-1"
+                        whileHover={{ scale: 1.1, rotate: 90 }}
+                        whileTap={{ scale: 0.9 }}
+                        animate={openMenuId === book.id ? { rotate: 90 } : { rotate: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </motion.button>
+                      
+                      <AnimatePresence>
+                        {openMenuId === book.id && (
+                          <motion.div 
+                            className="absolute right-0 top-8 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[160px]"
+                            variants={menuVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            transition={{
+                              type: "spring",
+                              stiffness: 500,
+                              damping: 35,
+                              mass: 1.2
+                            }}
+                          >
+                            <motion.button
+                              onClick={() => handleChangeCover(book.id)}
+                              disabled={uploadingCoverId === book.id || deletingId === book.id}
+                              className="w-full px-4 py-2 text-left text-sm text-black hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
+                              whileHover={{ backgroundColor: "rgba(0,0,0,0.05)" }}
+                              whileTap={{ scale: 0.98 }}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ 
+                                delay: 0.1, 
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 20,
+                                mass: 0.8
+                              }}
+                            >
+                              <motion.div
+                              initial={{ opacity: 0, x: 15, scale: 0.8 }}
+                              animate={{ opacity: 1, x: 0, scale: 1 }}
+                              transition={{ 
+                                delay: 0.02, 
+                                duration: 0.1
+                              }}
+                              >
+                                <Image className="w-4 h-4" />
+                              </motion.div>
+                              {uploadingCoverId === book.id ? 'Uploading...' : 'Change Cover'}
+                            </motion.button>
+                            <motion.button
+                              onClick={() => handleDelete(book.id)}
+                              disabled={deletingId === book.id || uploadingCoverId === book.id}
+                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                              whileHover={{ backgroundColor: "rgba(239, 68, 68, 0.05)" }}
+                              whileTap={{ scale: 0.98 }}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ 
+                                delay: 0.2, 
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 20,
+                                mass: 0.8
+                              }}
+                            >
+                              <motion.div
+                              initial={{ opacity: 0, x: 15, scale: 0.8 }}
+                              animate={{ opacity: 1, x: 0, scale: 1 }}
+                              transition={{ 
+                                delay: 0.02, 
+                                duration: 0.1
+                              }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </motion.div>
+                              {deletingId === book.id ? 'Deleting...' : 'Delete Book'}
+                            </motion.button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 </>
               )}
-            </div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
     </div>
   );
