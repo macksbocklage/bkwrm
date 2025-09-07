@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Book } from '@/lib/types';
 import { useBooks } from '@/hooks/useBooks';
+import EpubUpload from '@/components/EpubUpload';
 import { 
   BookOpen, 
   Calendar, 
@@ -14,11 +15,17 @@ import {
   Grid,
   List,
   MoreVertical,
-  Image
+  Image,
+  Upload
 } from 'lucide-react';
 
 interface BookLibraryProps {
   onBookSelect: (book: Book) => void;
+  showUpload: boolean;
+  onToggleUpload: () => void;
+  onFileSelect: (file: File) => void;
+  isUploading: boolean;
+  uploadError: string | null;
 }
 
 // Animation variants
@@ -76,7 +83,14 @@ const menuVariants = {
   }
 };
 
-export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
+export default function BookLibrary({ 
+  onBookSelect, 
+  showUpload, 
+  onToggleUpload, 
+  onFileSelect, 
+  isUploading, 
+  uploadError 
+}: BookLibraryProps) {
   const { books, loading, error, deleteBook, updateBook, uploadCover } = useBooks();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -85,6 +99,7 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
   const [uploadingCoverId, setUploadingCoverId] = useState<string | null>(null);
   const [pendingCoverUpload, setPendingCoverUpload] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredBooks = books.filter(book =>
@@ -164,7 +179,13 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
   };
 
   const toggleMenu = (bookId: string) => {
-    setOpenMenuId(openMenuId === bookId ? null : bookId);
+    if (openMenuId === bookId) {
+      // If clicking the same menu button, close it
+      setOpenMenuId(null);
+    } else {
+      // If clicking a different menu button, switch to that one
+      setOpenMenuId(bookId);
+    }
   };
 
   const closeMenu = () => {
@@ -174,7 +195,11 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isMenuClick = menuRef.current && menuRef.current.contains(target);
+      const isButtonClick = buttonRef.current && buttonRef.current.contains(target);
+      
+      if (!isMenuClick && !isButtonClick) {
         closeMenu();
       }
     };
@@ -257,6 +282,19 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
           </div>
           
           <div className="flex gap-2">
+            <motion.button
+              onClick={onToggleUpload}
+              className={`px-4 py-2 rounded-md transition-colors flex items-center gap-2 font-editors-note ${
+                showUpload 
+                  ? 'bg-white text-black border border-gray-200' 
+                  : 'bg-gray-100 text-black hover:bg-gray-200 border border-transparent'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Upload className="w-4 h-4" />
+              {showUpload ? 'View Library' : 'Upload'}
+            </motion.button>
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-md transition-colors ${
@@ -280,6 +318,77 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
           </div>
         </div>
       </div>
+
+      {/* Upload Section */}
+      <AnimatePresence mode="wait">
+        {showUpload && (
+          <motion.div 
+            key="upload"
+            className="mb-8 bg-white rounded-lg p-8 border border-gray-200"
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ 
+              opacity: 0, 
+              y: -20, 
+              scale: 0.95,
+              transition: { duration: 0.1 }
+            }}
+            transition={{ 
+              type: "spring",
+              stiffness: 500,
+              damping: 15,
+              mass: 0.6
+            }}
+          >
+            <motion.div 
+              className="text-center mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+            >
+              <h3 className="text-2xl font-semibold mb-2 font-editors-note">Upload Your EPUB</h3>
+              <p className="text-black">Select an EPUB file to begin reading with our enhanced reader experience.</p>
+            </motion.div>
+
+            <AnimatePresence>
+              {uploadError && (
+                <motion.div 
+                  className="mb-6 p-4 bg-red-100 border border-red-300 rounded-md"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <p className="text-red-800">{uploadError}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <EpubUpload onFileSelect={onFileSelect} />
+
+            <AnimatePresence>
+              {isUploading && (
+                <motion.div 
+                  className="mt-6 text-center"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="inline-flex items-center text-black">
+                    <motion.div 
+                      className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                    <span>Uploading and processing your EPUB...</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Books Display */}
       {filteredBooks.length === 0 ? (
@@ -374,8 +483,9 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                         {book.author}
                       </p>
                     </div>
-                    <div className="relative" ref={menuRef}>
+                    <div className="relative">
                       <motion.button
+                        ref={buttonRef}
                         onClick={() => toggleMenu(book.id)}
                         className="text-black hover:text-gray-600 transition-colors p-1"
                         whileHover={{ scale: 1.1, rotate: 90 }}
@@ -386,14 +496,33 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                         <MoreVertical className="w-4 h-4" />
                       </motion.button>
                       
-                      <AnimatePresence>
+                      <AnimatePresence mode="wait">
                         {openMenuId === book.id && (
                           <motion.div 
+                            ref={menuRef}
                             className="absolute right-0 top-8 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[160px]"
-                            variants={menuVariants}
-                            initial="hidden"
-                            animate="visible"
-                            exit="exit"
+                            initial={{ 
+                              opacity: 0, 
+                              scale: 0.8,
+                              x: 20,
+                              y: -20
+                            }}
+                            animate={{ 
+                              opacity: 1, 
+                              scale: 1,
+                              x: 0,
+                              y: 0
+                            }}
+                            exit={{
+                              opacity: 0,
+                              scale: 0.8,
+                              x: 20,
+                              y: -20,
+                              transition: {
+                                duration: 0.2,
+                                ease: "easeInOut"
+                              }
+                            }}
                             transition={{
                               type: "spring",
                               stiffness: 500,
@@ -489,12 +618,12 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                   
                   <motion.button
                     onClick={() => onBookSelect(book)}
-                    className="w-full bg-white text-black py-2 px-4 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 border border-gray-200"
+                    className="w-full bg-white text-black font-inter tracking-tighter py-2 px-4 rounded-md hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 border border-gray-200"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <BookOpen className="w-4 h-4" />
-                    Read Book
+                    Read
                   </motion.button>
                 </div>
               ) : (
@@ -554,8 +683,9 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                     >
                       Read
                     </motion.button>
-                    <div className="relative" ref={menuRef}>
+                    <div className="relative">
                       <motion.button
+                        ref={buttonRef}
                         onClick={() => toggleMenu(book.id)}
                         className="text-black hover:text-gray-600 transition-colors p-1"
                         whileHover={{ scale: 1.1, rotate: 90 }}
@@ -566,14 +696,33 @@ export default function BookLibrary({ onBookSelect }: BookLibraryProps) {
                         <MoreVertical className="w-4 h-4" />
                       </motion.button>
                       
-                      <AnimatePresence>
+                      <AnimatePresence mode="wait">
                         {openMenuId === book.id && (
                           <motion.div 
+                            ref={menuRef}
                             className="absolute right-0 top-8 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[160px]"
-                            variants={menuVariants}
-                            initial="hidden"
-                            animate="visible"
-                            exit="exit"
+                            initial={{ 
+                              opacity: 0, 
+                              scale: 0.8,
+                              x: 20,
+                              y: -20
+                            }}
+                            animate={{ 
+                              opacity: 1, 
+                              scale: 1,
+                              x: 0,
+                              y: 0
+                            }}
+                            exit={{
+                              opacity: 0,
+                              scale: 0.8,
+                              x: 20,
+                              y: -20,
+                              transition: {
+                                duration: 0.2,
+                                ease: "easeInOut"
+                              }
+                            }}
                             transition={{
                               type: "spring",
                               stiffness: 500,
