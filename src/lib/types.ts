@@ -9,6 +9,7 @@ export interface Book {
   uploaded_at: string
   last_read_at?: string
   reading_progress: number
+  current_location?: string  // CFI location for precise position restoration
   cover_image_url?: string
 }
 
@@ -24,6 +25,7 @@ export interface CreateBookData {
 export interface UpdateBookData {
   last_read_at?: string
   reading_progress?: number
+  current_location?: string
 }
 
 export interface Highlight {

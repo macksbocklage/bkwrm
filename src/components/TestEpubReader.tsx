@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ReactReader } from 'react-reader';
 import { useHighlights } from '@/hooks/useHighlights';
 import HighlightRenderer from './HighlightRenderer';
@@ -10,10 +10,11 @@ import { Highlight } from '@/lib/types';
 interface TestEpubReaderProps {
   filePath: string;
   onClose: () => void;
-  onProgressUpdate?: (progress: number) => void;
+  onProgressUpdate?: (progress: number, location?: string) => void;
   bookTitle?: string;
   bookAuthor?: string;
   bookId?: string;
+  initialLocation?: string | number;
 }
 
 export default function TestEpubReader({ 
@@ -22,15 +23,18 @@ export default function TestEpubReader({
   onProgressUpdate,
   bookTitle,
   bookAuthor,
-  bookId
+  bookId,
+  initialLocation
 }: TestEpubReaderProps) {
-  const [location, setLocation] = useState<string | number>(0);
+  const [location, setLocation] = useState<string | number>(initialLocation || 0);
   const [progress, setProgress] = useState(0);
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
   const renditionRef = useRef<any>(null);
   const lastHighlightText = useRef<string>('');
   const lastHighlightTime = useRef<number>(0);
+  const lastSavedLocation = useRef<string | number>(initialLocation || 0);
+  const progressSaveTimeout = useRef<NodeJS.Timeout | null>(null);
   
   const {
     highlights,
@@ -48,6 +52,72 @@ export default function TestEpubReader({
       loadHighlights(bookId);
     }
   }, [bookId, loadHighlights]);
+
+  // Debounced progress saving function
+  const saveProgress = useCallback(async (currentLocation: string | number, currentProgress: number) => {
+    if (!bookId || !onProgressUpdate) return;
+    
+    // Clear any existing timeout
+    if (progressSaveTimeout.current) {
+      clearTimeout(progressSaveTimeout.current);
+    }
+    
+    // Set a new timeout to save progress after user stops navigating
+    progressSaveTimeout.current = setTimeout(async () => {
+      try {
+        console.log('Saving progress:', { location: currentLocation, progress: currentProgress });
+        await onProgressUpdate(currentProgress, currentLocation.toString());
+        lastSavedLocation.current = currentLocation;
+        console.log('Progress saved successfully');
+      } catch (error) {
+        console.error('Failed to save progress:', error);
+      }
+    }, 1000); // Save after 1 second of inactivity
+  }, [bookId, onProgressUpdate]);
+
+  // Enhanced location change handler
+  const handleLocationChange = useCallback((epubcifi: string | number) => {
+    console.log('Location changed to:', epubcifi);
+    setLocation(epubcifi);
+    
+    // Calculate progress if it's a number
+    if (typeof epubcifi === 'number') {
+      const newProgress = Math.round(epubcifi * 100);
+      setProgress(newProgress);
+      
+      // Save progress if location has changed significantly
+      if (Math.abs(Number(epubcifi) - Number(lastSavedLocation.current)) > 0.01) {
+        saveProgress(epubcifi, newProgress);
+      }
+    } else {
+      // For CFI strings, we still want to save the location
+      saveProgress(epubcifi, progress);
+    }
+  }, [saveProgress, progress]);
+
+  // Save progress on component unmount or when user navigates away
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (progressSaveTimeout.current) {
+        clearTimeout(progressSaveTimeout.current);
+      }
+      // Force immediate save on page unload
+      if (bookId && onProgressUpdate && location !== lastSavedLocation.current) {
+        try {
+          await onProgressUpdate(progress, location.toString());
+        } catch (error) {
+          console.error('Failed to save progress on unload:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      handleBeforeUnload(); // Also save when component unmounts
+    };
+  }, [bookId, onProgressUpdate, location, progress]);
 
   // Re-render highlights when location changes (user navigates pages)
   useEffect(() => {
@@ -91,14 +161,6 @@ export default function TestEpubReader({
   }, []);
 
 
-  // Calculate progress based on location
-  useEffect(() => {
-    if (typeof location === 'number' && onProgressUpdate) {
-      const newProgress = Math.round(location * 100);
-      setProgress(newProgress);
-      onProgressUpdate(newProgress);
-    }
-  }, [location, onProgressUpdate]);
 
   // Robust text selection handler with multiple fallback methods
   const handleTextSelection = async () => {
@@ -230,6 +292,28 @@ export default function TestEpubReader({
     setSelectedHighlight(null);
   };
 
+  // Enhanced close handler that saves progress before closing
+  const handleClose = useCallback(async () => {
+    // Clear any pending timeout
+    if (progressSaveTimeout.current) {
+      clearTimeout(progressSaveTimeout.current);
+    }
+    
+    // Force immediate save before closing
+    if (bookId && onProgressUpdate && location !== lastSavedLocation.current) {
+      try {
+        console.log('Saving progress before closing...');
+        await onProgressUpdate(progress, location.toString());
+        console.log('Progress saved successfully before closing');
+      } catch (error) {
+        console.error('Failed to save progress before closing:', error);
+      }
+    }
+    
+    // Call the original onClose handler
+    onClose();
+  }, [bookId, onProgressUpdate, location, progress, onClose]);
+
   console.log('TestEpubReader filePath:', filePath);
 
   return (
@@ -252,7 +336,7 @@ export default function TestEpubReader({
               </div>
             )}
             <button 
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
             >
               Close
@@ -265,7 +349,7 @@ export default function TestEpubReader({
         <ReactReader
           url={filePath}
           location={location}
-          locationChanged={setLocation}
+          locationChanged={handleLocationChange}
           getRendition={(rendition) => {
             renditionRef.current = rendition;
             
