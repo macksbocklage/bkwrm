@@ -90,7 +90,7 @@ export async function PATCH(
     }
 
     const body: UpdateBookData = await request.json();
-    const { last_read_at, reading_progress } = body;
+    const { last_read_at, reading_progress, current_location } = body;
 
     // Validate reading progress if provided
     if (reading_progress !== undefined && (reading_progress < 0 || reading_progress > 100)) {
@@ -100,6 +100,7 @@ export async function PATCH(
     const updateData: any = {};
     if (last_read_at !== undefined) updateData.last_read_at = last_read_at;
     if (reading_progress !== undefined) updateData.reading_progress = reading_progress;
+    if (current_location !== undefined) updateData.current_location = current_location;
 
     const { data: book, error } = await supabase!
       .from('books')

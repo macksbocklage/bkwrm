@@ -70,12 +70,18 @@ export default function ReaderPage() {
     router.push('/home');
   };
 
-  const handleProgressUpdate = async (progress: number) => {
+  const handleProgressUpdate = async (progress: number, location?: string) => {
     if (book) {
-      await updateBook(book.id, { 
+      const updateData: any = { 
         reading_progress: progress,
         last_read_at: new Date().toISOString()
-      });
+      };
+      
+      if (location) {
+        updateData.current_location = location;
+      }
+      
+      await updateBook(book.id, updateData);
     }
   };
 
@@ -150,6 +156,7 @@ export default function ReaderPage() {
       bookTitle={book.title}
       bookAuthor={book.author}
       bookId={book.id}
+      initialLocation={book.current_location}
     />
   );
 }
