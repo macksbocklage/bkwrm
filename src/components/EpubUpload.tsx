@@ -192,7 +192,7 @@ export default function EpubUpload({ onFileSelect }: EpubUploadProps) {
               </motion.div>
               <div>
                 <motion.p 
-                  className="text-black font-medium mb-2"
+                  className="text-black font-medium font-inter tracking-tighter mb-2"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.3 }}
@@ -200,7 +200,7 @@ export default function EpubUpload({ onFileSelect }: EpubUploadProps) {
                   Upload an EPUB File
                 </motion.p>
                 <motion.p 
-                  className="text-sm text-black mb-4"
+                  className="text-sm font-inter tracking-tighter text-black mb-4"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2, duration: 0.3 }}
@@ -209,7 +209,7 @@ export default function EpubUpload({ onFileSelect }: EpubUploadProps) {
                 </motion.p>
                 <motion.button
                   onClick={openFileDialog}
-                  className="bg-white text-black px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
+                  className="bg-white text-black font-inter tracking-tighter px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3, duration: 0.3 }}

@@ -347,7 +347,7 @@ export default function BookLibrary({
               transition={{ delay: 0.1, duration: 0.4 }}
             >
               <h3 className="text-2xl font-semibold mb-2 font-editors-note">Upload Your EPUB</h3>
-              <p className="text-black">Select an EPUB file to begin reading with our enhanced reader experience.</p>
+              <p className="text-black font-inter tracking-tighter">Select an EPUB file to begin reading with our enhanced reader experience.</p>
             </motion.div>
 
             <AnimatePresence>
