@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
+    // Debug logging
+    console.log('Chat API - Book content provided:', !!bookContent);
+    console.log('Chat API - Book content length:', bookContent?.length || 0);
+    console.log('Chat API - First 200 chars:', bookContent?.slice(0, 200) || 'No content');
+
     // Prepare the system message with book context
     const systemMessage = {
       role: 'system' as const,
@@ -41,7 +46,7 @@ export async function POST(request: NextRequest) {
 
 IMPORTANT: Only use information from the provided book content. Do not use external knowledge about the book or author unless it's to provide basic context.
 
-${bookContent ? `Book Content Context:\n${bookContent.slice(0, 15000)}\n\nIf the book content is too long, focus on the most relevant sections to answer the user's question.` : 'No book content provided in this request.'}
+${bookContent ? `Book Content Context:\n${bookContent.slice(0, 80000)}\n\nThe above content represents a substantial portion of the book text for context. Use this to answer questions about specific chapters, characters, themes, quotes, and plot points.` : 'No book content provided in this request.'}
 
 Remember: Stay focused on the book content and help the user understand what they're reading.`
     };
@@ -55,7 +60,7 @@ Remember: Stay focused on the book content and help the user understand what the
 
     // Call OpenAI API
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       messages: messages,
       max_tokens: 1000,
       temperature: 0.7,

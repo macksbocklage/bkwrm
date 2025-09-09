@@ -66,11 +66,15 @@ export default function TestEpubReader({
       setIsLoadingContent(true);
       try {
         console.log('Extracting book content for chatbot...');
+        console.log('Using file path:', filePath);
         const extractedContent = await extractEpubText(filePath);
         setBookContent(extractedContent.fullText);
         console.log('Book content extracted successfully, length:', extractedContent.fullText.length);
+        console.log('Number of chapters found:', extractedContent.chapters.length);
+        console.log('First 300 characters of extracted text:', extractedContent.fullText.slice(0, 300));
       } catch (error) {
         console.error('Failed to extract book content:', error);
+        console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
         // Don't set error state, just log - chatbot can still work without full context
       } finally {
         setIsLoadingContent(false);
