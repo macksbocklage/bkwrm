@@ -134,7 +134,7 @@ export default function BookChatbot({
       {!isVisible && (
         <motion.button
           onClick={onToggle}
-          className="fixed right-6 bottom-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg z-40"
+          className="fixed right-6 bottom-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg z-40 transition-colors"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           initial={{ opacity: 0, scale: 0 }}
@@ -149,28 +149,28 @@ export default function BookChatbot({
       <AnimatePresence>
         {isVisible && (
           <motion.div
-            className="fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-300 shadow-xl z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-200 shadow-xl z-50 flex flex-col"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
             {/* Header */}
-            <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <BookOpen className="w-5 h-5" />
+            <div className="bg-gray-100 border-b p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <BookOpen className="w-5 h-5 text-black" />
                 <div>
-                  <h3 className="font-semibold">Book Assistant</h3>
-                  <p className="text-sm opacity-90">
+                  <h3 className="font-editors-note text-lg font-bold text-black">Book Assistant</h3>
+                  <p className="text-sm text-black font-inter tracking-tighter">
                     {bookTitle ? `Discussing: ${bookTitle.slice(0, 30)}${bookTitle.length > 30 ? '...' : ''}` : 'Book Chat'}
                   </p>
                 </div>
               </div>
               <button
                 onClick={onToggle}
-                className="p-1 hover:bg-blue-700 rounded"
+                className="p-2 hover:bg-gray-200 rounded transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-black" />
               </button>
             </div>
 
@@ -187,12 +187,12 @@ export default function BookChatbot({
                     className={`max-w-[80%] rounded-lg px-3 py-2 ${
                       message.role === 'user'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-900'
+                        : 'bg-gray-100 text-black'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <p className={`text-xs mt-1 ${
-                      message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                    <p className="text-sm font-inter tracking-tighter whitespace-pre-wrap">{message.content}</p>
+                    <p className={`text-xs mt-1 font-inter tracking-tighter ${
+                      message.role === 'user' ? 'text-blue-100' : 'text-gray-600'
                     }`}>
                       {formatTime(message.timestamp)}
                     </p>
@@ -209,8 +209,8 @@ export default function BookChatbot({
                 >
                   <div className="bg-gray-100 rounded-lg px-3 py-2">
                     <div className="flex items-center space-x-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm text-gray-600">Thinking...</span>
+                      <Loader2 className="w-4 h-4 animate-spin text-black" />
+                      <span className="text-sm text-black font-inter tracking-tighter">Thinking...</span>
                     </div>
                   </div>
                 </motion.div>
@@ -221,32 +221,32 @@ export default function BookChatbot({
 
             {/* Error Display */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm font-inter tracking-tighter">
                 {error}
               </div>
             )}
 
             {/* Input Area */}
-            <div className="border-t border-gray-300 p-4">
-              <div className="flex space-x-2">
+            <div className="border-t border-gray-200 p-4">
+              <div className="relative">
                 <textarea
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Ask about the book..."
-                  className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full resize-none rounded border border-gray-300 px-3 py-2 pr-10 text-sm text-black font-inter tracking-tighter focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                   rows={2}
                   disabled={isLoading}
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!inputMessage.trim() || isLoading}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white p-2 rounded-lg transition-colors"
+                  className="absolute right-2 top-2 p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-4 h-4 text-gray-600 hover:text-black transition-colors" />
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-black font-inter tracking-tighter mt-2 opacity-60">
                 Press Enter to send, Shift+Enter for new line
               </p>
             </div>
