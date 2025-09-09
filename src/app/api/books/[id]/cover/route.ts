@@ -161,9 +161,10 @@ function getImageMimeType(path: string): string {
 // GET /api/books/[id]/cover - Extract and return cover image for a book
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
     
     if (!userId) {
@@ -176,7 +177,7 @@ export async function GET(
       }, { status: 500 });
     }
 
-    const bookId = params.id;
+    const bookId = id;
 
     // Get the book to verify ownership and get file URL
     const { data: book, error: fetchError } = await supabaseAdmin!

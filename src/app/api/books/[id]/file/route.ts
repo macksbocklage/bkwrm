@@ -6,10 +6,11 @@ import { auth } from '@clerk/nextjs/server';
 // Also handles EPUB internal files like container.xml, content.opf, etc.
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('File proxy - Book ID:', params.id);
+    const { id } = await params;
+    console.log('File proxy - Book ID:', id);
     
     const { userId } = await auth();
     console.log('File proxy - User ID:', userId);
@@ -28,7 +29,7 @@ export async function GET(
     const { data: book, error: bookError } = await supabaseAdmin!
       .from('books')
       .select('file_url, user_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', userId)
       .single();
 
@@ -70,7 +71,7 @@ export async function GET(
       status: 200,
       headers: {
         'Content-Type': 'application/epub+zip',
-        'Content-Disposition': `inline; filename="${params.id}.epub"`,
+        'Content-Disposition': `inline; filename="${id}.epub"`,
         'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
       },
     });

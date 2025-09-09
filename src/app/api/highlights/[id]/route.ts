@@ -6,9 +6,10 @@ import { UpdateHighlightData } from '@/lib/types';
 // PUT /api/highlights/[id] - Update a highlight
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
     
     if (!userId) {
@@ -36,7 +37,7 @@ export async function PUT(
     const { data: highlight, error } = await supabaseAdmin!
       .from('highlights')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', userId)
       .select()
       .single();
@@ -68,9 +69,10 @@ export async function PUT(
 // DELETE /api/highlights/[id] - Delete a highlight
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
     
     if (!userId) {
@@ -86,7 +88,7 @@ export async function DELETE(
     const { data: highlight, error } = await supabaseAdmin!
       .from('highlights')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', userId)
       .select()
       .single();

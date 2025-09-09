@@ -66,44 +66,26 @@ export default function ReaderPage() {
     fetchBook();
   }, [params.bookId]);
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (progressUpdateTimeout.current) {
-        clearTimeout(progressUpdateTimeout.current);
-      }
-    };
-  }, []);
 
   const handleClose = () => {
     router.push('/home');
   };
 
-  // Debounced progress update to prevent excessive API calls
-  const progressUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
-  
+  // Direct progress update (debouncing is handled in TestEpubReader)
   const handleProgressUpdate = useCallback(async (progress: number, location?: string) => {
     if (!book) return;
     
-    // Clear any existing timeout
-    if (progressUpdateTimeout.current) {
-      clearTimeout(progressUpdateTimeout.current);
+    const updateData: any = { 
+      reading_progress: progress,
+      last_read_at: new Date().toISOString()
+    };
+    
+    if (location) {
+      updateData.current_location = location;
     }
     
-    // Set a new timeout to update progress after user stops navigating
-    progressUpdateTimeout.current = setTimeout(async () => {
-      const updateData: any = { 
-        reading_progress: progress,
-        last_read_at: new Date().toISOString()
-      };
-      
-      if (location) {
-        updateData.current_location = location;
-      }
-      
-      console.log('Debounced progress update:', updateData);
-      await updateBook(book.id, updateData);
-    }, 2000); // Wait 2 seconds after last change
+    console.log('Progress update:', updateData);
+    await updateBook(book.id, updateData);
   }, [book, updateBook]);
 
   if (isLoading) {

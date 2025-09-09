@@ -5,7 +5,9 @@ import { ReactReader } from 'react-reader';
 import { useHighlights } from '@/hooks/useHighlights';
 import HighlightRenderer from './HighlightRenderer';
 import HighlightToolbar from './HighlightToolbar';
+import BookChatbot from './BookChatbot';
 import { Highlight } from '@/lib/types';
+import { extractEpubText } from '@/lib/epubTextExtractor';
 
 interface TestEpubReaderProps {
   filePath: string;
@@ -30,6 +32,9 @@ export default function TestEpubReader({
   const [progress, setProgress] = useState(0);
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [isChatbotVisible, setIsChatbotVisible] = useState(false);
+  const [bookContent, setBookContent] = useState<string | null>(null);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
   const renditionRef = useRef<any>(null);
   const lastHighlightText = useRef<string>('');
   const lastHighlightTime = useRef<number>(0);
@@ -53,12 +58,43 @@ export default function TestEpubReader({
     }
   }, [bookId, loadHighlights]);
 
+  // Extract book content for chatbot context
+  useEffect(() => {
+    const extractContent = async () => {
+      if (!filePath || isLoadingContent) return;
+      
+      setIsLoadingContent(true);
+      try {
+        console.log('Extracting book content for chatbot...');
+        const extractedContent = await extractEpubText(filePath);
+        setBookContent(extractedContent.fullText);
+        console.log('Book content extracted successfully, length:', extractedContent.fullText.length);
+      } catch (error) {
+        console.error('Failed to extract book content:', error);
+        // Don't set error state, just log - chatbot can still work without full context
+      } finally {
+        setIsLoadingContent(false);
+      }
+    };
+
+    extractContent();
+  }, [filePath, isLoadingContent]);
   // Debounced progress saving function
   const saveProgress = useCallback(async (currentLocation: string | number, currentProgress: number) => {
     if (!bookId || !onProgressUpdate) return;
     
     // Check if location has actually changed significantly
-    const locationChanged = Math.abs(Number(currentLocation) - Number(lastSavedLocation.current)) > 0.05;
+    // For CFI strings, compare as strings; for numbers, compare as numbers
+    let locationChanged = false;
+    if (typeof currentLocation === 'string' && typeof lastSavedLocation.current === 'string') {
+      locationChanged = currentLocation !== lastSavedLocation.current;
+    } else if (typeof currentLocation === 'number' && typeof lastSavedLocation.current === 'number') {
+      locationChanged = Math.abs(currentLocation - lastSavedLocation.current) > 0.01;
+    } else {
+      // Different types, consider it changed
+      locationChanged = true;
+    }
+    
     if (!locationChanged) {
       console.log('Location change too small, skipping save');
       return;
@@ -79,8 +115,22 @@ export default function TestEpubReader({
       } catch (error) {
         console.error('Failed to save progress:', error);
       }
-    }, 3000); // Increased to 3 seconds of inactivity
+    }, 2000); // Reduced to 2 seconds for more responsive saving
   }, [bookId, onProgressUpdate]);
+
+  // Periodic progress save every 30 seconds
+  useEffect(() => {
+    if (!bookId || !onProgressUpdate) return;
+    
+    const interval = setInterval(() => {
+      if (location !== lastSavedLocation.current) {
+        console.log('Periodic save triggered');
+        saveProgress(location, progress);
+      }
+    }, 30000); // Save every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [bookId, onProgressUpdate, location, progress, saveProgress]);
 
   // Enhanced location change handler
   const handleLocationChange = useCallback((epubcifi: string | number) => {
@@ -95,10 +145,29 @@ export default function TestEpubReader({
       // Save progress (the saveProgress function will handle debouncing and change detection)
       saveProgress(epubcifi, newProgress);
     } else {
-      // For CFI strings, we still want to save the location
-      saveProgress(epubcifi, progress);
+      // For CFI strings, try to extract progress from the rendition if available
+      let currentProgress = progress;
+      if (renditionRef.current && renditionRef.current.location) {
+        // Try to get progress from the rendition
+        const renditionProgress = renditionRef.current.location.percentage;
+        if (renditionProgress !== undefined) {
+          currentProgress = Math.round(renditionProgress * 100);
+          setProgress(currentProgress);
+        }
+      }
+      
+      // Save progress with current progress value
+      saveProgress(epubcifi, currentProgress);
     }
-  }, [saveProgress, progress]);
+    
+    // Also save immediately for significant location changes (like chapter navigation)
+    if (typeof epubcifi === 'string' && epubcifi.includes('chapter')) {
+      console.log('Chapter navigation detected, saving immediately');
+      if (onProgressUpdate && bookId) {
+        onProgressUpdate(progress, epubcifi.toString());
+      }
+    }
+  }, [saveProgress, progress, onProgressUpdate, bookId]);
 
   // Save progress on component unmount or when user navigates away
   useEffect(() => {
@@ -338,6 +407,16 @@ export default function TestEpubReader({
                 Progress: {progress}%
               </div>
             )}
+            <button
+              onClick={() => setIsChatbotVisible(!isChatbotVisible)}
+              className={`px-4 py-2 rounded transition-colors ${
+                isChatbotVisible
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-blue-500 text-white hover:bg-blue-600'
+              }`}
+            >
+              {isChatbotVisible ? 'Hide Chat' : 'Ask AI'}
+            </button>
             <button 
               onClick={handleClose}
               className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
@@ -348,13 +427,19 @@ export default function TestEpubReader({
         </div>
       </div>
       
-      <div className="flex-1 relative">
+      <div className="flex-1 relative flex">
+        {/* Main Reader Area */}
+        <div className={`flex-1 relative transition-all duration-300 ${isChatbotVisible ? 'mr-96' : ''}`}>
         <ReactReader
           url={filePath}
           location={location}
           locationChanged={handleLocationChange}
           getRendition={(rendition) => {
             renditionRef.current = rendition;
+            
+            // Set up progress tracking when rendition is ready
+            // Note: The location hook might not be available in all versions of react-reader
+            // We'll rely on the locationChanged callback instead
             
             // Set up text selection handling
             rendition.hooks.content.register((contents: any) => {
@@ -479,6 +564,8 @@ export default function TestEpubReader({
           <div>Book ID: {bookId || 'Not provided'}</div>
           <div>Highlights: {highlights.length}</div>
           <div>Location: {location.toString()}</div>
+          <div>Progress: {progress}%</div>
+          <div>Last Saved: {lastSavedLocation.current.toString()}</div>
           <div>Selecting: {isSelecting ? 'Yes' : 'No'}</div>
           <div>Rendition: {renditionRef.current ? 'Ready' : 'Not ready'}</div>
         </div>
@@ -502,6 +589,25 @@ export default function TestEpubReader({
           </div>
         )}
         
+        {/* Content Loading Indicator */}
+        {isLoadingContent && (
+          <div className="absolute top-28 left-4 bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm">
+            Preparing AI context...
+          </div>
+        )}
+        
+        </div>
+
+        {/* AI Chatbot */}
+        {bookId && (
+          <BookChatbot
+            bookId={bookId}
+            bookTitle={bookTitle}
+            bookContent={bookContent || undefined}
+            isVisible={isChatbotVisible}
+            onToggle={() => setIsChatbotVisible(!isChatbotVisible)}
+          />
+        )}
       </div>
     </div>
   );

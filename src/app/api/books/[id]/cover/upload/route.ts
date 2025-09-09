@@ -5,9 +5,10 @@ import { randomUUID } from 'crypto';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
     
     if (!userId) {
@@ -20,7 +21,7 @@ export async function POST(
       }, { status: 500 });
     }
 
-    const bookId = params.id;
+    const bookId = id;
 
     // Get the book to verify ownership
     const { data: book, error: fetchError } = await supabaseAdmin!
