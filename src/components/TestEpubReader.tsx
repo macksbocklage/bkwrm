@@ -5,7 +5,9 @@ import { ReactReader } from 'react-reader';
 import { useHighlights } from '@/hooks/useHighlights';
 import HighlightRenderer from './HighlightRenderer';
 import HighlightToolbar from './HighlightToolbar';
+import BookChatbot from './BookChatbot';
 import { Highlight } from '@/lib/types';
+import { extractEpubText } from '@/lib/epubTextExtractor';
 
 interface TestEpubReaderProps {
   filePath: string;
@@ -30,6 +32,9 @@ export default function TestEpubReader({
   const [progress, setProgress] = useState(0);
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [isChatbotVisible, setIsChatbotVisible] = useState(false);
+  const [bookContent, setBookContent] = useState<string | null>(null);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
   const renditionRef = useRef<any>(null);
   const lastHighlightText = useRef<string>('');
   const lastHighlightTime = useRef<number>(0);
@@ -52,6 +57,28 @@ export default function TestEpubReader({
       loadHighlights(bookId);
     }
   }, [bookId, loadHighlights]);
+
+  // Extract book content for chatbot context
+  useEffect(() => {
+    const extractContent = async () => {
+      if (!filePath || isLoadingContent) return;
+      
+      setIsLoadingContent(true);
+      try {
+        console.log('Extracting book content for chatbot...');
+        const extractedContent = await extractEpubText(filePath);
+        setBookContent(extractedContent.fullText);
+        console.log('Book content extracted successfully, length:', extractedContent.fullText.length);
+      } catch (error) {
+        console.error('Failed to extract book content:', error);
+        // Don't set error state, just log - chatbot can still work without full context
+      } finally {
+        setIsLoadingContent(false);
+      }
+    };
+
+    extractContent();
+  }, [filePath, isLoadingContent]);
 
   // Debounced progress saving function
   const saveProgress = useCallback(async (currentLocation: string | number, currentProgress: number) => {
@@ -338,6 +365,16 @@ export default function TestEpubReader({
                 Progress: {progress}%
               </div>
             )}
+            <button
+              onClick={() => setIsChatbotVisible(!isChatbotVisible)}
+              className={`px-4 py-2 rounded transition-colors ${
+                isChatbotVisible
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-blue-500 text-white hover:bg-blue-600'
+              }`}
+            >
+              {isChatbotVisible ? 'Hide Chat' : 'Ask AI'}
+            </button>
             <button 
               onClick={handleClose}
               className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
@@ -348,7 +385,9 @@ export default function TestEpubReader({
         </div>
       </div>
       
-      <div className="flex-1 relative">
+      <div className="flex-1 relative flex">
+        {/* Main Reader Area */}
+        <div className={`flex-1 relative transition-all duration-300 ${isChatbotVisible ? 'mr-96' : ''}`}>
         <ReactReader
           url={filePath}
           location={location}
@@ -502,6 +541,25 @@ export default function TestEpubReader({
           </div>
         )}
         
+        {/* Content Loading Indicator */}
+        {isLoadingContent && (
+          <div className="absolute top-28 left-4 bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm">
+            Preparing AI context...
+          </div>
+        )}
+        
+        </div>
+
+        {/* AI Chatbot */}
+        {bookId && (
+          <BookChatbot
+            bookId={bookId}
+            bookTitle={bookTitle}
+            bookContent={bookContent || undefined}
+            isVisible={isChatbotVisible}
+            onToggle={() => setIsChatbotVisible(!isChatbotVisible)}
+          />
+        )}
       </div>
     </div>
   );
