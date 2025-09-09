@@ -102,10 +102,12 @@ export function useBooks(): UseBooksReturn {
     }
   }, []);
 
-  // Update book progress or last read time
+  // Update book progress or last read time with debouncing
   const updateBook = useCallback(async (bookId: string, data: UpdateBookData): Promise<boolean> => {
     try {
       setError(null);
+      
+      console.log('Updating book:', bookId, data);
       
       const response = await fetch(`/api/books/${bookId}`, {
         method: 'PATCH',

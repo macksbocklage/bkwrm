@@ -201,16 +201,30 @@ export default function HighlightRenderer({
     // Prevent multiple simultaneous renders
     if (isRenderingRef.current) return;
     
+    // Only clear and re-render if highlights actually changed
+    const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+    if (!iframe || !iframe.contentDocument) return;
+
+    // Check if highlights have actually changed by comparing IDs
+    const existingHighlights = iframe.contentDocument.querySelectorAll('.epub-highlight-overlay');
+    const existingIds = new Set(Array.from(existingHighlights).map(el => el.getAttribute('data-highlight-id')).filter((id): id is string => id !== null));
+    const currentIds = new Set(highlights.map(h => h.id));
+    
+    // Only clear and re-render if the highlight set has changed
+    const hasChanged = existingIds.size !== currentIds.size || 
+      Array.from(existingIds).some(id => !currentIds.has(id)) ||
+      Array.from(currentIds).some(id => !existingIds.has(id));
+
+    if (!hasChanged) {
+      return; // No changes, don't re-render
+    }
+
     // Clear tracking for new highlight set
     renderedHighlights.current.clear();
     failedHighlights.current.clear();
     retryAttempts.current.clear();
     
     // Remove all existing highlight elements from iframe
-    const iframe = document.querySelector('iframe') as HTMLIFrameElement;
-    if (!iframe || !iframe.contentDocument) return;
-
-    const existingHighlights = iframe.contentDocument.querySelectorAll('.epub-highlight, .epub-highlight-overlay');
     existingHighlights.forEach(el => el.remove());
 
     // Render highlights with a delay to ensure content is loaded
@@ -228,11 +242,14 @@ export default function HighlightRenderer({
     const iframe = document.querySelector('iframe') as HTMLIFrameElement;
     if (!iframe || !iframe.contentDocument) return;
 
+    let renderTimeout: NodeJS.Timeout | null = null;
+
     const observer = new MutationObserver((mutations) => {
       let shouldReRender = false;
       
       mutations.forEach((mutation) => {
         if (mutation.type === 'childList') {
+          // Only re-render if highlight overlays were actually removed
           mutation.removedNodes.forEach((node) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as Element;
@@ -245,9 +262,13 @@ export default function HighlightRenderer({
       });
 
       if (shouldReRender && !isRenderingRef.current) {
-        setTimeout(() => {
+        // Debounce re-rendering to prevent excessive updates
+        if (renderTimeout) {
+          clearTimeout(renderTimeout);
+        }
+        renderTimeout = setTimeout(() => {
           renderMissingHighlights();
-        }, 100);
+        }, 300);
       }
     });
 
@@ -259,6 +280,9 @@ export default function HighlightRenderer({
 
     return () => {
       observer.disconnect();
+      if (renderTimeout) {
+        clearTimeout(renderTimeout);
+      }
     };
   }, [highlights, renderMissingHighlights]);
 

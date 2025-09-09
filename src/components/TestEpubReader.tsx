@@ -57,6 +57,13 @@ export default function TestEpubReader({
   const saveProgress = useCallback(async (currentLocation: string | number, currentProgress: number) => {
     if (!bookId || !onProgressUpdate) return;
     
+    // Check if location has actually changed significantly
+    const locationChanged = Math.abs(Number(currentLocation) - Number(lastSavedLocation.current)) > 0.05;
+    if (!locationChanged) {
+      console.log('Location change too small, skipping save');
+      return;
+    }
+    
     // Clear any existing timeout
     if (progressSaveTimeout.current) {
       clearTimeout(progressSaveTimeout.current);
@@ -72,7 +79,7 @@ export default function TestEpubReader({
       } catch (error) {
         console.error('Failed to save progress:', error);
       }
-    }, 1000); // Save after 1 second of inactivity
+    }, 3000); // Increased to 3 seconds of inactivity
   }, [bookId, onProgressUpdate]);
 
   // Enhanced location change handler
@@ -85,10 +92,8 @@ export default function TestEpubReader({
       const newProgress = Math.round(epubcifi * 100);
       setProgress(newProgress);
       
-      // Save progress if location has changed significantly
-      if (Math.abs(Number(epubcifi) - Number(lastSavedLocation.current)) > 0.01) {
-        saveProgress(epubcifi, newProgress);
-      }
+      // Save progress (the saveProgress function will handle debouncing and change detection)
+      saveProgress(epubcifi, newProgress);
     } else {
       // For CFI strings, we still want to save the location
       saveProgress(epubcifi, progress);
@@ -101,7 +106,7 @@ export default function TestEpubReader({
       if (progressSaveTimeout.current) {
         clearTimeout(progressSaveTimeout.current);
       }
-      // Force immediate save on page unload
+      // Force immediate save on page unload only if there's a pending save
       if (bookId && onProgressUpdate && location !== lastSavedLocation.current) {
         try {
           await onProgressUpdate(progress, location.toString());
@@ -115,27 +120,25 @@ export default function TestEpubReader({
     
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      handleBeforeUnload(); // Also save when component unmounts
+      // Only save on unmount if there's a pending save
+      if (progressSaveTimeout.current) {
+        handleBeforeUnload();
+      }
     };
   }, [bookId, onProgressUpdate, location, progress]);
 
   // Re-render highlights when location changes (user navigates pages)
   useEffect(() => {
     if (highlights.length > 0) {
-      console.log('Location changed, re-rendering highlights');
+      console.log('Location changed, checking if highlights need re-rendering');
       // Small delay to ensure the new content is loaded
       setTimeout(() => {
-        // Clear existing highlights and re-render
+        // The HighlightRenderer component will handle re-rendering
+        // We don't need to manually clear highlights here as it causes blinking
         const iframe = document.querySelector('iframe') as HTMLIFrameElement;
         if (iframe && iframe.contentDocument) {
-          const doc = iframe.contentDocument;
-          const existingHighlights = doc.querySelectorAll('.epub-highlight');
-          existingHighlights.forEach(el => el.remove());
-          
-          // Re-render all highlights
-          highlights.forEach(highlight => {
-            // This will be handled by the HighlightRenderer component
-          });
+          // Just trigger a re-check by the HighlightRenderer
+          // The component will detect if highlights need to be re-rendered
         }
       }, 500);
     }
@@ -354,7 +357,7 @@ export default function TestEpubReader({
             renditionRef.current = rendition;
             
             // Set up text selection handling
-            rendition.hooks.content.register((contents) => {
+            rendition.hooks.content.register((contents: any) => {
               const doc = contents.document;
               
               console.log('Setting up highlight functionality in EPUB content');
@@ -385,7 +388,7 @@ export default function TestEpubReader({
                 setTimeout(handleTextSelection, 600);
               };
               
-              doc.addEventListener('mouseup', (e) => {
+              doc.addEventListener('mouseup', (e: any) => {
                 console.log('Mouseup event in EPUB content', e);
                 console.log('Event target:', e.target);
                 handleSelection();

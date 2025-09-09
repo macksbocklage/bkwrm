@@ -6,10 +6,11 @@ import { UpdateBookData } from '@/lib/types';
 // GET /api/books/[id] - Get a specific book
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('Fetching book with ID:', params.id);
+    const { id } = await params;
+    console.log('Fetching book with ID:', id);
     
     const { userId } = await auth();
     console.log('User ID:', userId);
@@ -27,7 +28,7 @@ export async function GET(
     const { data: books, error } = await supabase!
       .from('books')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', userId);
 
     if (error) {
@@ -40,13 +41,13 @@ export async function GET(
     }
 
     if (!books || books.length === 0) {
-      console.log('No book found with ID:', params.id, 'for user:', userId);
+      console.log('No book found with ID:', id, 'for user:', userId);
       
       // Let's also check if the book exists with any user ID
       const { data: allBooks, error: allBooksError } = await supabase!
         .from('books')
         .select('id, user_id, title')
-        .eq('id', params.id);
+        .eq('id', id);
       
       console.log('Book exists with any user ID:', allBooks);
       
@@ -54,7 +55,7 @@ export async function GET(
     }
 
     if (books.length > 1) {
-      console.warn('Multiple books found with same ID:', params.id);
+      console.warn('Multiple books found with same ID:', id);
     }
 
     const book = books[0];
@@ -74,9 +75,10 @@ export async function GET(
 // PATCH /api/books/[id] - Update book progress or last read time
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
     
     if (!userId) {
@@ -105,7 +107,7 @@ export async function PATCH(
     const { data: book, error } = await supabase!
       .from('books')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', userId)
       .select()
       .single();

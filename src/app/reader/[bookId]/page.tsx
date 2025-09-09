@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import TestEpubReader from '@/components/TestEpubReader';
 import PageTransition from '@/components/PageTransition';
@@ -66,12 +66,32 @@ export default function ReaderPage() {
     fetchBook();
   }, [params.bookId]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (progressUpdateTimeout.current) {
+        clearTimeout(progressUpdateTimeout.current);
+      }
+    };
+  }, []);
+
   const handleClose = () => {
     router.push('/home');
   };
 
-  const handleProgressUpdate = async (progress: number, location?: string) => {
-    if (book) {
+  // Debounced progress update to prevent excessive API calls
+  const progressUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  const handleProgressUpdate = useCallback(async (progress: number, location?: string) => {
+    if (!book) return;
+    
+    // Clear any existing timeout
+    if (progressUpdateTimeout.current) {
+      clearTimeout(progressUpdateTimeout.current);
+    }
+    
+    // Set a new timeout to update progress after user stops navigating
+    progressUpdateTimeout.current = setTimeout(async () => {
       const updateData: any = { 
         reading_progress: progress,
         last_read_at: new Date().toISOString()
@@ -81,9 +101,10 @@ export default function ReaderPage() {
         updateData.current_location = location;
       }
       
+      console.log('Debounced progress update:', updateData);
       await updateBook(book.id, updateData);
-    }
-  };
+    }, 2000); // Wait 2 seconds after last change
+  }, [book, updateBook]);
 
   if (isLoading) {
     return (
