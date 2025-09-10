@@ -1,10 +1,26 @@
 'use client';
 
-import { SignInButton, SignUpButton, UserButton, useUser } from '@clerk/nextjs';
-import Image from "next/image";
+import { SignInButton, SignUpButton, useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function Home() {
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push('/home');
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  if (!isLoaded) {
+    return (
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <div className="text-black">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen flex flex-col justify-between">
@@ -12,31 +28,24 @@ export default function Home() {
         <h1 className="text-4xl font-bold">BKWRM</h1>
         <p className="text-base">Your Personal Reading Library</p>
         
-        {isSignedIn ? (
-          <div className="flex flex-col items-center gap-4">
-            <p className="text-lg">Welcome, {user?.firstName || user?.emailAddresses[0].emailAddress}!</p>
-            <UserButton afterSignOutUrl="/" />
+        <div className="flex gap-4">
+          <div className="bg-white text-black p-2 rounded-md hover:bg-gray-300 transition-all">
+            <SignInButton 
+              mode="modal" 
+              forceRedirectUrl="/home"
+            >
+              Sign In
+            </SignInButton>
           </div>
-        ) : (
-          <div className="flex gap-4">
-            <div className="bg-white text-black p-2 rounded-md hover:bg-gray-300 transition-all">
-              <SignInButton 
-                mode="modal" 
-                forceRedirectUrl="/home"
-              >
-                Sign In
-              </SignInButton>
-            </div>
-            <div className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition-all">
-              <SignUpButton 
-                mode="modal" 
-                forceRedirectUrl="/home"
-              >
-                Sign Up
-              </SignUpButton>
-            </div>
+          <div className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition-all">
+            <SignUpButton 
+              mode="modal" 
+              forceRedirectUrl="/home"
+            >
+              Sign Up
+            </SignUpButton>
           </div>
-        )}
+        </div>
       </main>
       <footer className="font-sans flex justify-center items-center text-black">
                 

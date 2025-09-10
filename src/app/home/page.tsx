@@ -21,7 +21,7 @@ export default function Home() {
     return (
       <div className="bg-gray-50 min-h-screen flex items-center justify-center font-geist-sans">
         <div className="text-black text-center">
-          <h1 className="text-2xl font-bold mb-4 font-editors-note">Please Sign In to Access the Dashboard</h1>
+          <h1 className="text-2xl font-bold mb-4 font-editors-note">Loading...</h1>
           <a href="/" className="text-black hover:underline">Sign In</a>
         </div>
       </div>
