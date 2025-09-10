@@ -150,7 +150,7 @@ export default function BookChatbot({
       <AnimatePresence>
         {isVisible && (
           <motion.div
-            className="fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-200 shadow-xl z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-[28rem] bg-white border-l border-gray-200 shadow-xl z-50 flex flex-col"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
