@@ -116,15 +116,15 @@ export default function HighlightRenderer({
               highlightOverlay.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation(); // Prevent other event handlers
                 onHighlightClick?.(highlight);
               });
 
               highlightOverlay.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (confirm('Delete this highlight?')) {
-                  onHighlightDelete?.(highlight.id);
-                }
+                e.stopImmediatePropagation(); // Prevent other event handlers
+                onHighlightDelete?.(highlight.id);
               });
               
               renderedHighlights.current.add(highlight.id);
@@ -196,46 +196,102 @@ export default function HighlightRenderer({
     }
   }, [highlights, renderHighlight]);
 
-  // Consolidated rendering effect
+  // Optimized cleanup for deleted highlights (reduced logging to prevent blinking)
+  const removeDeletedHighlights = useCallback(() => {
+    const iframe = document.querySelector('iframe') as HTMLIFrameElement;
+    if (!iframe || !iframe.contentDocument) return;
+
+    const existingOverlays = iframe.contentDocument.querySelectorAll('.epub-highlight-overlay');
+    const currentHighlightIds = new Set(highlights.map(h => h.id));
+    
+    let removedCount = 0;
+    const removedIds: string[] = [];
+    
+    // Remove overlays and CSS highlights for deleted highlights
+    existingOverlays.forEach((overlay) => {
+      const overlayId = overlay.getAttribute('data-highlight-id');
+      if (overlayId && !currentHighlightIds.has(overlayId)) {
+        overlay.remove();
+        renderedHighlights.current.delete(overlayId);
+        removedIds.push(overlayId);
+        removedCount++;
+      }
+    });
+
+    // Also clean up CSS highlight classes
+    const highlightElements = iframe.contentDocument.querySelectorAll('.epub-highlight');
+    highlightElements.forEach((element) => {
+      const elementId = element.getAttribute('data-highlight-id');
+      if (elementId && !currentHighlightIds.has(elementId)) {
+        element.classList.remove('epub-highlight');
+        element.removeAttribute('data-highlight-id');
+        removedCount++;
+      }
+    });
+
+    // Clean up any inline highlight styles
+    const styledElements = iframe.contentDocument.querySelectorAll('[data-highlight-id][style*="background"]');
+    styledElements.forEach((element) => {
+      const elementId = element.getAttribute('data-highlight-id');
+      if (elementId && !currentHighlightIds.has(elementId)) {
+        const style = (element as HTMLElement).style;
+        style.backgroundColor = '';
+        style.background = '';
+        element.removeAttribute('data-highlight-id');
+        removedCount++;
+      }
+    });
+
+    // Only log if something significant was cleaned up
+    if (removedCount > 0) {
+      console.log(`✅ Removed ${removedCount} deleted highlights`);
+    }
+  }, [highlights]);
+
+  // Consolidated rendering effect (optimized to prevent blinking)
   useEffect(() => {
     // Prevent multiple simultaneous renders
     if (isRenderingRef.current) return;
     
-    // Only clear and re-render if highlights actually changed
     const iframe = document.querySelector('iframe') as HTMLIFrameElement;
     if (!iframe || !iframe.contentDocument) return;
 
-    // Check if highlights have actually changed by comparing IDs
+    // Check what highlights exist vs what should exist
     const existingHighlights = iframe.contentDocument.querySelectorAll('.epub-highlight-overlay');
     const existingIds = new Set(Array.from(existingHighlights).map(el => el.getAttribute('data-highlight-id')).filter((id): id is string => id !== null));
     const currentIds = new Set(highlights.map(h => h.id));
     
-    // Only clear and re-render if the highlight set has changed
-    const hasChanged = existingIds.size !== currentIds.size || 
+    // Only proceed if there are actual changes
+    const hasChanges = existingIds.size !== currentIds.size || 
       Array.from(existingIds).some(id => !currentIds.has(id)) ||
       Array.from(currentIds).some(id => !existingIds.has(id));
 
-    if (!hasChanged) {
-      return; // No changes, don't re-render
+    if (!hasChanges) {
+      return; // No changes - skip to prevent unnecessary rendering
     }
 
-    // Clear tracking for new highlight set
-    renderedHighlights.current.clear();
-    failedHighlights.current.clear();
-    retryAttempts.current.clear();
-    
-    // Remove all existing highlight elements from iframe
-    existingHighlights.forEach(el => el.remove());
-
-    // Render highlights with a delay to ensure content is loaded
+    // Instead of clearing everything, just render what's missing
+    // The removeDeletedHighlights effect handles deletion cleanup
     const timeoutId = setTimeout(() => {
-      renderAllHighlights();
-    }, 200);
+      renderMissingHighlights();
+    }, 50); // Much shorter delay for smoother UX
 
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [highlights, renderAllHighlights]);
+  }, [highlights, renderMissingHighlights]);
+
+  // Immediate cleanup effect for deleted highlights (silent for smooth UX)
+  useEffect(() => {
+    const currentCount = highlights.length;
+    const lastCount = (window as any).__lastHighlightCount || currentCount;
+    
+    if (currentCount < lastCount) {
+      // Immediate cleanup when highlights are deleted
+      removeDeletedHighlights();
+    }
+    (window as any).__lastHighlightCount = currentCount;
+  }, [highlights.length, removeDeletedHighlights]);
 
   // Single MutationObserver for content changes
   useEffect(() => {

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Highlight, X, Palette, Trash2 } from 'lucide-react';
+import { X, Palette, Trash2 } from 'lucide-react';
+import { Highlight } from '@/lib/types';
 
 interface HighlightToolbarProps {
   highlight: Highlight | null;
@@ -27,6 +28,7 @@ export default function HighlightToolbar({
   onDelete 
 }: HighlightToolbarProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!highlight) return null;
 
@@ -35,11 +37,17 @@ export default function HighlightToolbar({
     setShowColorPicker(false);
   };
 
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this highlight?')) {
-      onDelete(highlight.id);
-      onClose();
-    }
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    onDelete(highlight.id);
+    onClose();
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -118,13 +126,35 @@ export default function HighlightToolbar({
           </div>
 
           {/* Delete Button */}
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-2 w-full p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span className="text-sm">Delete Highlight</span>
-          </button>
+          {!showDeleteConfirm ? (
+            <button
+              onClick={handleDeleteClick}
+              className="flex items-center gap-2 w-full p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="text-sm">Delete Highlight</span>
+            </button>
+          ) : (
+            <div className="border border-red-200 rounded p-3 bg-red-50">
+              <p className="text-sm text-red-800 mb-3">
+                Are you sure you want to delete this highlight?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={handleDeleteCancel}
+                  className="flex-1 px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
     </AnimatePresence>

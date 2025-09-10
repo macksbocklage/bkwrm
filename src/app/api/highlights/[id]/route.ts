@@ -94,7 +94,7 @@ export async function DELETE(
       .single();
 
     if (error) {
-      console.error('Database error:', error);
+      console.error('Database error during highlight deletion:', error);
       return NextResponse.json({ 
         error: 'Failed to delete highlight',
         details: error.message,
@@ -109,7 +109,7 @@ export async function DELETE(
     return NextResponse.json({ message: 'Highlight deleted successfully' });
 
   } catch (error) {
-    console.error('Highlight deletion error:', error);
+    console.error('Unexpected error during highlight deletion:', error);
     return NextResponse.json({ 
       error: 'Failed to delete highlight',
       details: error instanceof Error ? error.message : 'Unknown error'

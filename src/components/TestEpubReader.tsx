@@ -8,6 +8,7 @@ import HighlightToolbar from './HighlightToolbar';
 import BookChatbot from './BookChatbot';
 import { Highlight } from '@/lib/types';
 import { extractEpubText } from '@/lib/epubTextExtractor';
+import { motion } from 'framer-motion';
 
 interface TestEpubReaderProps {
   filePath: string;
@@ -58,23 +59,48 @@ export default function TestEpubReader({
     }
   }, [bookId, loadHighlights]);
 
+  // Refresh EPUB layout when chatbot visibility changes
+  useEffect(() => {
+    if (renditionRef.current) {
+      // Add a small delay to ensure CSS transition completes
+      const timeoutId = setTimeout(() => {
+        try {
+          // Dispatch a window resize event to trigger layout recalculation
+          // This is less invasive than calling rendition.resize() directly
+          window.dispatchEvent(new Event('resize'));
+          console.log('EPUB layout refreshed using window resize event');
+        } catch (error) {
+          console.error('Error refreshing EPUB layout:', error);
+          // Fallback to direct resize if event dispatch fails
+          renditionRef.current?.resize();
+        }
+      }, 350); // Slightly longer than the 300ms CSS transition
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isChatbotVisible]);
+
+  // Cleanup global event listeners on unmount
+  useEffect(() => {
+    return () => {
+      if (renditionRef.current && (renditionRef.current as any)._highlightCleanup) {
+        (renditionRef.current as any)._highlightCleanup();
+      }
+    };
+  }, []);
+
   // Extract book content for chatbot context
   useEffect(() => {
     const extractContent = async () => {
-      if (!filePath || isLoadingContent) return;
+      if (!filePath || isLoadingContent || bookContent) return; // Don't re-extract if we already have content
       
       setIsLoadingContent(true);
       try {
-        console.log('Extracting book content for chatbot...');
-        console.log('Using file path:', filePath);
         const extractedContent = await extractEpubText(filePath);
         setBookContent(extractedContent.fullText);
-        console.log('Book content extracted successfully, length:', extractedContent.fullText.length);
-        console.log('Number of chapters found:', extractedContent.chapters.length);
-        console.log('First 300 characters of extracted text:', extractedContent.fullText.slice(0, 300));
+        console.log('📚 Book content extracted for AI chatbot');
       } catch (error) {
         console.error('Failed to extract book content:', error);
-        console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
         // Don't set error state, just log - chatbot can still work without full context
       } finally {
         setIsLoadingContent(false);
@@ -82,7 +108,7 @@ export default function TestEpubReader({
     };
 
     extractContent();
-  }, [filePath, isLoadingContent]);
+  }, [filePath]); // Remove isLoadingContent from dependencies to prevent loops
   // Debounced progress saving function
   const saveProgress = useCallback(async (currentLocation: string | number, currentProgress: number) => {
     if (!bookId || !onProgressUpdate) return;
@@ -238,68 +264,62 @@ export default function TestEpubReader({
 
 
 
-  // Robust text selection handler with multiple fallback methods
+  // Simplified and robust text selection handler
   const handleTextSelection = async () => {
-    console.log('Text selection triggered');
-    
     if (!bookId || !renditionRef.current) {
-      console.log('Missing bookId or rendition:', { bookId, rendition: !!renditionRef.current });
       return;
     }
 
-    // Try multiple methods to get selection
+    // Strategy 1: Look for selection in all potential locations
     let selection: Selection | null = null;
     let selectedText = '';
+    let selectionSource = '';
     
-    // Method 1: Try iframe selection first
-    const iframe = document.querySelector('iframe') as HTMLIFrameElement;
-    if (iframe && iframe.contentDocument) {
-      selection = iframe.contentDocument.getSelection();
-      if (selection && selection.toString().trim().length > 0) {
-        selectedText = selection.toString().trim();
-        console.log('Found selection in iframe:', selectedText);
-      }
+    // Check main window first
+    const mainSelection = window.getSelection();
+    if (mainSelection && mainSelection.toString().trim().length > 0) {
+      selection = mainSelection;
+      selectedText = mainSelection.toString().trim();
+      selectionSource = 'main-window';
     }
     
-    // Method 2: Try main window selection as fallback
-    if (!selectedText) {
-      const mainSelection = window.getSelection();
-      if (mainSelection && mainSelection.toString().trim().length > 0) {
-        selection = mainSelection;
-        selectedText = mainSelection.toString().trim();
-        console.log('Found selection in main window:', selectedText);
-      }
-    }
-    
-    // Method 3: Try to find selection in any iframe
+    // Check all iframes (react-reader typically uses iframe)
     if (!selectedText) {
       const allIframes = document.querySelectorAll('iframe');
-      for (const iframe of allIframes) {
-        if (iframe.contentDocument) {
-          const iframeSelection = iframe.contentDocument.getSelection();
-          if (iframeSelection && iframeSelection.toString().trim().length > 0) {
-            selection = iframeSelection;
-            selectedText = iframeSelection.toString().trim();
-            console.log('Found selection in iframe:', iframe.src, selectedText);
-            break;
+      
+      for (let i = 0; i < allIframes.length; i++) {
+        const iframe = allIframes[i] as HTMLIFrameElement;
+        try {
+          if (iframe.contentDocument) {
+            const iframeSelection = iframe.contentDocument.getSelection();
+            
+            if (iframeSelection && iframeSelection.toString().trim().length > 0) {
+              selection = iframeSelection;
+              selectedText = iframeSelection.toString().trim();
+              selectionSource = `iframe-${i}`;
+              break;
+            }
           }
+        } catch (error) {
+          // Silently handle cross-origin iframe access errors
         }
       }
     }
     
     if (!selectedText || selectedText.length < 3) {
-      console.log('No valid text selected:', { selectedText, length: selectedText.length });
-      return;
+      return; // Silently return if no valid selection
     }
 
-    // Prevent duplicate highlights
+    console.log(`🎯 Creating highlight from ${selectionSource}:`, selectedText.substring(0, 50) + '...');
+
+    // Prevent duplicate highlights (reduced to 500ms for easier testing)
     const now = Date.now();
-    if (lastHighlightText.current === selectedText && (now - lastHighlightTime.current) < 2000) {
-      console.log('Duplicate highlight prevented:', selectedText);
+    if (lastHighlightText.current === selectedText && (now - lastHighlightTime.current) < 500) {
+      console.log('⚠️ Duplicate highlight prevented (too soon after last highlight):', selectedText);
       return;
     }
 
-    console.log('Creating highlight for text:', selectedText);
+    console.log('🎨 Creating highlight for text:', selectedText);
     setIsSelecting(true);
     
     // Update last highlight info
@@ -328,24 +348,41 @@ export default function TestEpubReader({
         color: '#ffff00'
       };
 
+      console.log('💾 About to call createHighlight with data:', highlightData);
+      
       const result = await createHighlight(highlightData);
       
+      console.log('💾 createHighlight result:', result);
+      
       if (result) {
-        console.log('Highlight created successfully:', result);
+        console.log('✅ Highlight created successfully:', result);
         // Show success feedback
         setTimeout(() => {
-          console.log('Highlight rendering should be triggered');
+          console.log('🎯 Highlight rendering should be triggered');
         }, 100);
       } else {
-        console.error('Failed to create highlight');
+        console.error('❌ createHighlight returned falsy result:', result);
       }
     } catch (error) {
-      console.error('Error creating highlight:', error);
+      console.error('💥 Error creating highlight:', error);
+      console.error('💥 Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        selectedText,
+        bookId,
+        location
+      });
     } finally {
+      console.log('🧹 Cleaning up selection...');
       setIsSelecting(false);
       // Clear the selection
       if (selection) {
-        selection.removeAllRanges();
+        try {
+          selection.removeAllRanges();
+          console.log('✅ Selection cleared');
+        } catch (clearError) {
+          console.error('⚠️ Error clearing selection:', clearError);
+        }
       }
     }
   };
@@ -364,8 +401,12 @@ export default function TestEpubReader({
 
   // Handle highlight delete
   const handleHighlightDelete = async (highlightId: string) => {
-    await deleteHighlight(highlightId);
-    setSelectedHighlight(null);
+    try {
+      await deleteHighlight(highlightId);
+      setSelectedHighlight(null);
+    } catch (error) {
+      console.error('❌ Error deleting highlight:', error);
+    }
   };
 
   // Enhanced close handler that saves progress before closing
@@ -403,7 +444,6 @@ export default function TestEpubReader({
             {bookAuthor && (
               <p className="text-sm text-black font-inter tracking-tighter">by {bookAuthor}</p>
             )}
-            <p className="text-xs text-black font-inter tracking-tighter">File: {filePath}</p>
           </div>
           <div className="flex items-center gap-4">
             {progress > 0 && (
@@ -411,22 +451,14 @@ export default function TestEpubReader({
                 Progress: {progress}%
               </div>
             )}
-            <button
-              onClick={() => setIsChatbotVisible(!isChatbotVisible)}
-              className={`px-4 py-2 rounded transition-colors ${
-                isChatbotVisible
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-blue-500 text-white hover:bg-blue-600'
-              }`}
-            >
-              {isChatbotVisible ? 'Hide Chat' : 'Ask AI'}
-            </button>
-            <button 
+            <motion.button 
               onClick={handleClose}
-              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+              className="px-4 py-2 rounded-md transition-colors flex items-center gap-2 font-editors-note bg-gray-200 text-black hover:bg-gray-300 border border-transparent"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               Close
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
@@ -446,50 +478,61 @@ export default function TestEpubReader({
             // We'll rely on the locationChanged callback instead
             
             // Set up text selection handling
+            
             rendition.hooks.content.register((contents: any) => {
               const doc = contents.document;
               
-              console.log('Setting up highlight functionality in EPUB content');
-              console.log('Document:', doc);
-              console.log('Document body:', doc.body);
-              console.log('Document location:', doc.location);
-              console.log('Document URL:', doc.URL);
-              console.log('Is iframe document:', doc !== document);
-              
-              // Check if this is an iframe document
-              if (doc !== document) {
-                console.log('This is an iframe document - EPUB content is in iframe');
-              } else {
-                console.log('This is the main document - EPUB content is rendered directly');
-              }
-              
-              // Add single event listener for text selection with debouncing
+              // Enhanced selection handling with debouncing to prevent highlight blinking
               let selectionTimeout: NodeJS.Timeout | null = null;
-              const handleSelection = () => {
-                console.log('Selection event triggered');
-                // Clear any existing timeout
-                if (selectionTimeout) {
-                  clearTimeout(selectionTimeout);
+              let lastProcessedSelection = '';
+              
+              const handleSelection = (eventType: string, event?: Event) => {
+                // Skip processing if click was on a highlight overlay
+                if (event && event.target) {
+                  const target = event.target as HTMLElement;
+                  if (target.classList.contains('epub-highlight-overlay') || 
+                      target.closest('.epub-highlight-overlay')) {
+                    return; // Silent skip to prevent blinking
+                  }
                 }
-                // Use multiple timeouts to catch selection at different stages
-                selectionTimeout = setTimeout(handleTextSelection, 100);
-                setTimeout(handleTextSelection, 300);
-                setTimeout(handleTextSelection, 600);
+                
+                // Get current selection
+                const selection = doc.getSelection();
+                const selectedText = selection ? selection.toString().trim() : '';
+                
+                // Only process if there's meaningful new text selection
+                if (selectedText.length > 2 && selectedText !== lastProcessedSelection) {
+                  lastProcessedSelection = selectedText;
+                  
+                  // Clear any existing timeout
+                  if (selectionTimeout) {
+                    clearTimeout(selectionTimeout);
+                  }
+                  
+                  // Process selection with single delayed call to avoid multiple triggers
+                  selectionTimeout = setTimeout(() => {
+                    handleTextSelection();
+                    // Clear the processed selection after a delay to allow re-highlighting same text later
+                    setTimeout(() => { lastProcessedSelection = ''; }, 2000);
+                  }, 150);
+                } else if (selectedText.length === 0) {
+                  // Clear processed selection when user clicks without selecting
+                  lastProcessedSelection = '';
+                }
               };
               
+              // Add event listeners for text selection
               doc.addEventListener('mouseup', (e: any) => {
-                console.log('Mouseup event in EPUB content', e);
-                console.log('Event target:', e.target);
-                handleSelection();
+                handleSelection('mouseup', e);
               });
               
-              // Add selectionchange event for debugging
               doc.addEventListener('selectionchange', () => {
-                const selection = doc.getSelection();
-                console.log('Selection change event in EPUB');
-                if (selection && selection.toString().trim().length > 0) {
-                  console.log('Text selected in EPUB:', selection.toString().trim());
-                }
+                handleSelection('selectionchange');
+              });
+              
+              // Also listen on the window for cases where selection bubbles up
+              doc.defaultView?.addEventListener?.('mouseup', (e: any) => {
+                handleSelection('iframe-window-mouseup', e);
               });
               
               // Add styles for highlighting
@@ -531,9 +574,80 @@ export default function TestEpubReader({
                 }
               `;
               doc.head.appendChild(style);
-              
-              console.log('Highlight styles and event listeners added');
             });
+            
+            // Add fallback global event listeners as backup
+            
+            let globalLastProcessedSelection = '';
+            let globalSelectionTimeout: NodeJS.Timeout | null = null;
+            
+            const globalMouseUpHandler = (e: MouseEvent) => {
+              // Skip processing if click was on a highlight overlay
+              const target = e.target as HTMLElement;
+              if (target && (target.classList.contains('epub-highlight-overlay') || 
+                           target.closest('.epub-highlight-overlay'))) {
+                return; // Silent skip to prevent blinking
+              }
+              
+              const selection = window.getSelection();
+              const selectedText = selection ? selection.toString().trim() : '';
+              
+              // Only process if there's new meaningful selection  
+              if (selectedText.length > 2 && selectedText !== globalLastProcessedSelection) {
+                globalLastProcessedSelection = selectedText;
+                
+                if (globalSelectionTimeout) {
+                  clearTimeout(globalSelectionTimeout);
+                }
+                
+                globalSelectionTimeout = setTimeout(() => {
+                  handleTextSelection();
+                  setTimeout(() => { globalLastProcessedSelection = ''; }, 2000);
+                }, 100);
+              } else if (selectedText.length === 0) {
+                globalLastProcessedSelection = '';
+              }
+            };
+            
+            const globalSelectionHandler = () => {
+              // Use same logic as mouseup to prevent duplicate processing
+              const selection = window.getSelection();
+              const selectedText = selection ? selection.toString().trim() : '';
+              
+              if (selectedText.length > 2 && selectedText !== globalLastProcessedSelection) {
+                globalLastProcessedSelection = selectedText;
+                
+                if (globalSelectionTimeout) {
+                  clearTimeout(globalSelectionTimeout);
+                }
+                
+                globalSelectionTimeout = setTimeout(() => {
+                  handleTextSelection();
+                  setTimeout(() => { globalLastProcessedSelection = ''; }, 2000);
+                }, 100);
+              }
+            };
+            
+            // Add to document and window
+            document.addEventListener('mouseup', globalMouseUpHandler);
+            document.addEventListener('selectionchange', globalSelectionHandler);
+            window.addEventListener('mouseup', globalMouseUpHandler);
+            
+            // Cleanup function to remove global listeners when component unmounts
+            const cleanup = () => {
+              document.removeEventListener('mouseup', globalMouseUpHandler);
+              document.removeEventListener('selectionchange', globalSelectionHandler);
+              window.removeEventListener('mouseup', globalMouseUpHandler);
+            };
+            
+            // Store cleanup function for later use
+            (rendition as any)._highlightCleanup = cleanup;
+            
+            // Add debug function to window for manual testing
+            (window as any).testHighlight = () => {
+              console.log('🧪 Manual highlight test triggered');
+              handleTextSelection();
+            };
           }}
           loadingView={
             <div className="flex items-center justify-center h-full">

@@ -121,8 +121,15 @@ export function useHighlights(): UseHighlightsReturn {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete highlight');
+        const responseText = await response.text();
+        let errorData = {};
+        try {
+          errorData = responseText ? JSON.parse(responseText) : {};
+        } catch (parseError) {
+          errorData = { error: 'Invalid response format', rawResponse: responseText };
+        }
+        console.error('❌ Delete failed with status', response.status, ':', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to delete highlight`);
       }
       
       // Remove from local state
@@ -130,7 +137,7 @@ export function useHighlights(): UseHighlightsReturn {
       
       return true;
     } catch (err) {
-      console.error('Error deleting highlight:', err);
+      console.error('❌ Error deleting highlight:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete highlight');
       return false;
     }

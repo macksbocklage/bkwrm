@@ -20,6 +20,7 @@
     "openai": "^5.20.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
     "react-reader": "^2.0.13",
     "tailwind-merge": "^3.3.1"
   },

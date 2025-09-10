@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, MessageCircle, X, BookOpen, Loader2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -190,7 +191,29 @@ export default function BookChatbot({
                         : 'bg-gray-100 text-black'
                     }`}
                   >
-                    <p className="text-sm font-inter tracking-tighter whitespace-pre-wrap">{message.content}</p>
+                    <div className="text-sm font-inter tracking-tighter prose prose-sm max-w-none">
+                      {message.role === 'user' ? (
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      ) : (
+                        <ReactMarkdown
+                          components={{
+                            h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-inherit">{children}</h1>,
+                            h2: ({children}) => <h2 className="text-base font-bold mb-2 text-inherit">{children}</h2>,
+                            h3: ({children}) => <h3 className="text-sm font-bold mb-1 text-inherit">{children}</h3>,
+                            p: ({children}) => <p className="mb-2 last:mb-0 text-inherit">{children}</p>,
+                            strong: ({children}) => <strong className="font-bold text-inherit">{children}</strong>,
+                            em: ({children}) => <em className="italic text-inherit">{children}</em>,
+                            ul: ({children}) => <ul className="list-disc list-outside mb-2 text-inherit space-y-1 pl-4">{children}</ul>,
+                            ol: ({children}) => <ol className="list-decimal list-outside mb-2 text-inherit space-y-1 pl-4">{children}</ol>,
+                            li: ({children}) => <li className="text-inherit">{children}</li>,
+                            code: ({children}) => <code className="bg-gray-200 px-1 py-0.5 rounded text-xs text-inherit">{children}</code>,
+                            blockquote: ({children}) => <blockquote className="border-l-2 border-gray-300 pl-2 italic text-inherit">{children}</blockquote>
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      )}
+                    </div>
                     <p className={`text-xs mt-1 font-inter tracking-tighter ${
                       message.role === 'user' ? 'text-blue-100' : 'text-gray-600'
                     }`}>
