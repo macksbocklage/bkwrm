@@ -296,7 +296,7 @@ export default function HighlightRenderer({
   // Single MutationObserver for content changes
   useEffect(() => {
     const iframe = document.querySelector('iframe') as HTMLIFrameElement;
-    if (!iframe || !iframe.contentDocument) return;
+    if (!iframe || !iframe.contentDocument || !iframe.contentDocument.body) return;
 
     let renderTimeout: NodeJS.Timeout | null = null;
 

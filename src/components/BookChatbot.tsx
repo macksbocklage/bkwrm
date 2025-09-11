@@ -135,7 +135,7 @@ export default function BookChatbot({
       {!isVisible && (
         <motion.button
           onClick={onToggle}
-          className="fixed right-6 bottom-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg z-40 transition-colors"
+          className="fixed right-6 bottom-6 bg-orange-600 hover:bg-orange-700 text-white p-4 rounded-full shadow-lg z-40 transition-colors"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           initial={{ opacity: 0, scale: 0 }}
