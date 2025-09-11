@@ -7,7 +7,8 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 // Check if Supabase is configured
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey && supabaseServiceKey)
 
-if (!isSupabaseConfigured) {
+// Only log warning in development/runtime, not during build
+if (!isSupabaseConfigured && process.env.NODE_ENV !== 'production') {
   console.warn('Supabase is not configured. Please set up your environment variables.')
 }
 
