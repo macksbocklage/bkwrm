@@ -89,7 +89,7 @@ export default function HighlightDebugger({ bookId }: HighlightDebuggerProps) {
       console.log(`Iframe ${index}:`, {
         src: iframe.src,
         contentDocument: iframe.contentDocument,
-        readyState: iframe.readyState
+        readyState: (iframe as { readyState?: number }).readyState
       });
     });
     

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { auth } from '@clerk/nextjs/server';
 import { UpdateHighlightData } from '@/lib/types';
 
@@ -26,7 +26,7 @@ export async function PUT(
     const { text, color } = body;
 
     // Build update object with only provided fields
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (text !== undefined) updateData.text = text.trim();
     if (color !== undefined) updateData.color = color;
 

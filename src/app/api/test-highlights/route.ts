@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { auth } from '@clerk/nextjs/server';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log('Test highlights API called');
     

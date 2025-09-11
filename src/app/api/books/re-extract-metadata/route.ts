@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 import { auth } from '@clerk/nextjs/server';
 
@@ -103,7 +103,7 @@ function extractFromOpf(opfContent: string, type: 'title' | 'creator'): string |
   return null;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const { userId } = await auth();
     

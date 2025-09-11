@@ -3,7 +3,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { auth } from '@clerk/nextjs/server';
 
 // GET /api/books - Get all books for the authenticated user
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { userId } = await auth();
     console.log('Books API - User ID:', userId);

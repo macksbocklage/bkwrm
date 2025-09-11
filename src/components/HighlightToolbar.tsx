@@ -77,7 +77,7 @@ export default function HighlightToolbar({
         <div className="mb-3">
           <p className="text-sm text-gray-600 mb-2">Selected text:</p>
           <p className="text-sm bg-gray-50 p-2 rounded border italic">
-            "{highlight.text}"
+            &quot;{highlight.text}&quot;
           </p>
         </div>
 

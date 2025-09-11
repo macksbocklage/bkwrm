@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import TestEpubReader from '@/components/TestEpubReader';
 import PageTransition from '@/components/PageTransition';
@@ -75,7 +75,7 @@ export default function ReaderPage() {
   const handleProgressUpdate = useCallback(async (progress: number, location?: string) => {
     if (!book) return;
     
-    const updateData: any = { 
+    const updateData: Record<string, unknown> = { 
       reading_progress: progress,
       last_read_at: new Date().toISOString()
     };

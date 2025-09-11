@@ -68,7 +68,7 @@ export async function POST(
     const buffer = Buffer.from(bytes);
 
     // Upload cover image to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabaseAdmin!.storage
+    const { error: uploadError } = await supabaseAdmin!.storage
       .from('book-covers')
       .upload(coverFileName, buffer, {
         contentType: file.type,

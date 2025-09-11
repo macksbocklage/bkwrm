@@ -10,7 +10,6 @@ import {
   Calendar, 
   FileText, 
   Trash2, 
-  Download,
   Search,
   Grid,
   List,
@@ -62,7 +61,7 @@ const bookCardVariants = {
   }
 };
 
-const menuVariants = {
+const _menuVariants = {
   hidden: { 
     opacity: 0, 
     scale: 0.8,
@@ -121,7 +120,7 @@ export default function BookLibrary({
     }
   };
 
-  const handleUpdateProgress = async (bookId: string, progress: number) => {
+  const _handleUpdateProgress = async (bookId: string, progress: number) => {
     await updateBook(bookId, { 
       reading_progress: progress,
       last_read_at: new Date().toISOString()

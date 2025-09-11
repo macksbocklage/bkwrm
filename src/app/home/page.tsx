@@ -1,6 +1,7 @@
 'use client';
 
 import { UserButton, useUser } from '@clerk/nextjs';
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -22,7 +23,7 @@ export default function Home() {
       <div className="bg-gray-50 min-h-screen flex items-center justify-center font-geist-sans">
         <div className="text-black text-center">
           <h1 className="text-2xl font-bold mb-4 font-editors-note">Loading...</h1>
-          <a href="/" className="text-black hover:underline">Sign In</a>
+          <Link href="/" className="text-black hover:underline">Sign In</Link>
         </div>
       </div>
     );

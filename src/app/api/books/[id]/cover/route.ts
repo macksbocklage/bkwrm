@@ -73,7 +73,7 @@ async function extractCoverImage(fileUrl: string): Promise<{ coverImageUrl: stri
     const coverFileName = `cover_${coverId}.${getImageExtension(coverImagePath)}`;
     
     // Upload cover image to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabaseAdmin!.storage
+    const { error: uploadError } = await supabaseAdmin!.storage
       .from('book-covers')
       .upload(coverFileName, coverImageBuffer, {
         contentType: getImageMimeType(coverImagePath),

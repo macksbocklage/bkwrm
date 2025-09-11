@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const health = {
+    const health: Record<string, unknown> = {
       supabaseConfigured: isSupabaseConfigured,
       timestamp: new Date().toISOString(),
     };
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Test database connection
     try {
-      const { data, error } = await supabaseAdmin!.from('books').select('count').limit(1);
+      const { error } = await supabaseAdmin!.from('books').select('count').limit(1);
       health['database'] = {
         connected: !error,
         error: error?.message
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     // Test storage connection
     try {
-      const { data, error } = await supabaseAdmin!.storage.from('books').list('', { limit: 1 });
+      const { error } = await supabaseAdmin!.storage.from('books').list('', { limit: 1 });
       health['storage'] = {
         connected: !error,
         error: error?.message

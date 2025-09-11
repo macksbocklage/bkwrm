@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactReader } from 'react-reader';
-import { ChevronLeft, ChevronRight, Menu, Settings, BookOpen, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Menu, Settings, BookOpen } from 'lucide-react';
 
 interface SimpleEpubReaderProps {
   filePath: string;
@@ -20,7 +20,7 @@ const sidebarVariants = {
     x: 0,
     opacity: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 500,
       damping: 15,
       mass: 0.6
@@ -30,7 +30,7 @@ const sidebarVariants = {
     x: -320,
     opacity: 0,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 600,
       damping: 10,
       mass: 0.5
@@ -38,7 +38,7 @@ const sidebarVariants = {
   }
 };
 
-const overlayVariants = {
+const _overlayVariants = {
   hidden: {
     opacity: 0
   },
@@ -57,14 +57,14 @@ const overlayVariants = {
 };
 
 export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReaderProps) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showToc, setShowToc] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [location, setLocation] = useState<string | number>(0);
-  const [toc, setToc] = useState<any[]>([]);
-  const [metadata, setMetadata] = useState<any>(null);
+  const [toc, setToc] = useState<unknown[]>([]);
+  const [metadata, setMetadata] = useState<unknown>(null);
 
   // Debug logging
   React.useEffect(() => {
@@ -77,18 +77,18 @@ export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReader
     setLocation(epubcifi);
   };
 
-  const handleTocChange = (toc: any[]) => {
+  const _handleTocChange = (toc: unknown[]) => {
     setToc(toc);
   };
 
-  const handleMetadata = (metadata: any) => {
+  const _handleMetadata = (metadata: unknown) => {
     setMetadata(metadata);
     setIsLoading(false);
   };
 
-  const handleError = (error: any) => {
+  const _handleError = (error: unknown) => {
     console.error('EPUB Error:', error);
-    setError(error.message || 'Failed to load EPUB');
+    setError(error instanceof Error ? error.message : 'Failed to load EPUB');
     setIsLoading(false);
   };
 
@@ -205,10 +205,10 @@ export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReader
             transition={{ delay: 0.1, duration: 0.3 }}
           >
             <h1 className="font-semibold text-lg">
-              {metadata?.title || 'Loading...'}
+              {(metadata as { title?: string })?.title || 'Loading...'}
             </h1>
             <p className="text-sm text-black">
-              by {metadata?.creator || 'Unknown Author'}
+              by {(metadata as { creator?: string })?.creator || 'Unknown Author'}
             </p>
           </motion.div>
         </div>
@@ -257,15 +257,15 @@ export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReader
                   {toc.map((item, index) => (
                     <motion.button
                       key={index}
-                      onClick={() => goToChapter(item.href)}
+                      onClick={() => goToChapter((item as { href: string }).href)}
                       className="block w-full text-left p-2 hover:bg-gray-200 rounded-md transition-colors"
-                      style={{ paddingLeft: `${(item.level || 0) * 16 + 8}px` }}
+                      style={{ paddingLeft: `${((item as { level?: number }).level || 0) * 16 + 8}px` }}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 + index * 0.05, duration: 0.3 }}
                       whileHover={{ x: 4 }}
                     >
-                      {item.label}
+                      {(item as { label: string }).label}
                     </motion.button>
                   ))}
                 </div>
@@ -354,7 +354,7 @@ export default function SimpleEpubReader({ filePath, onClose }: SimpleEpubReader
               location={location}
               locationChanged={handleLocationChange}
               getRendition={(rendition) => {
-                rendition.hooks.content.register((contents) => {
+                rendition.hooks.content.register((contents: { document: Document }) => {
                   // Create a style element instead of using addStylesheet
                   const style = document.createElement('style');
                   style.textContent = `

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Book, CreateBookData, UpdateBookData } from '@/lib/types';
+import { Book, UpdateBookData } from '@/lib/types';
 
 interface UseBooksReturn {
   books: Book[];

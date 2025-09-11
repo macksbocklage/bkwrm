@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Highlight } from '@/lib/types';
 
 interface HighlightRendererProps {
@@ -158,7 +158,7 @@ export default function HighlightRenderer({
     }
   }, [onHighlightClick, onHighlightDelete]);
 
-  const renderAllHighlights = useCallback(() => {
+  const _renderAllHighlights = useCallback(() => {
     if (isRenderingRef.current) return;
     
     isRenderingRef.current = true;
@@ -284,13 +284,13 @@ export default function HighlightRenderer({
   // Immediate cleanup effect for deleted highlights (silent for smooth UX)
   useEffect(() => {
     const currentCount = highlights.length;
-    const lastCount = (window as any).__lastHighlightCount || currentCount;
+    const lastCount = (window as { __lastHighlightCount?: number }).__lastHighlightCount || currentCount;
     
     if (currentCount < lastCount) {
       // Immediate cleanup when highlights are deleted
       removeDeletedHighlights();
     }
-    (window as any).__lastHighlightCount = currentCount;
+    (window as { __lastHighlightCount?: number }).__lastHighlightCount = currentCount;
   }, [highlights.length, removeDeletedHighlights]);
 
   // Single MutationObserver for content changes

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Highlight, CreateHighlightData, UpdateHighlightData } from '@/lib/types';
 
 interface UseHighlightsReturn {
@@ -125,11 +125,11 @@ export function useHighlights(): UseHighlightsReturn {
         let errorData = {};
         try {
           errorData = responseText ? JSON.parse(responseText) : {};
-        } catch (parseError) {
+        } catch {
           errorData = { error: 'Invalid response format', rawResponse: responseText };
         }
         console.error('❌ Delete failed with status', response.status, ':', errorData);
-        throw new Error(errorData.error || `HTTP ${response.status}: Failed to delete highlight`);
+        throw new Error((errorData as { error?: string }).error || `HTTP ${response.status}: Failed to delete highlight`);
       }
       
       // Remove from local state

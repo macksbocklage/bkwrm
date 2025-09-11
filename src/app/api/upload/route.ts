@@ -56,7 +56,7 @@ async function extractEpubMetadata(file: File): Promise<{ title: string; author:
     const author = extractFromOpf(opfContent, 'creator') || parseFilenameForMetadata(file.name).author;
     
     // Extract cover image
-    const coverImageUrl = await extractCoverImageFromEpub(zipFile, opfContent, opfPath);
+    const coverImageUrl = await extractCoverImageFromEpub(zipFile as { files: { [key: string]: { async: (format: string) => Promise<ArrayBuffer> } } }, opfContent, opfPath);
     
     console.log('Extracted metadata:', { title, author, coverImageUrl, filename: file.name });
     
@@ -103,7 +103,7 @@ function extractFromOpf(opfContent: string, type: 'title' | 'creator'): string |
 }
 
 // Extract cover image from EPUB
-async function extractCoverImageFromEpub(zipFile: any, opfContent: string, opfPath: string): Promise<string | null> {
+async function extractCoverImageFromEpub(zipFile: { files: { [key: string]: { async: (format: string) => Promise<ArrayBuffer> } } }, opfContent: string, opfPath: string): Promise<string | null> {
   try {
     // Extract cover image path from OPF
     const coverImagePath = extractCoverFromOpf(opfContent, opfPath);
@@ -122,7 +122,7 @@ async function extractCoverImageFromEpub(zipFile: any, opfContent: string, opfPa
     const coverFileName = `cover_${coverId}.${getImageExtension(coverImagePath)}`;
     
     // Upload cover image to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabaseAdmin!.storage
+    const { error: uploadError } = await supabaseAdmin!.storage
       .from('book-covers')
       .upload(coverFileName, coverImageBuffer, {
         contentType: getImageMimeType(coverImagePath),
@@ -205,7 +205,7 @@ function getImageMimeType(path: string): string {
 }
 
 // Parse filename to extract title and author as fallback
-function parseFilenameForMetadata(filename: string): { title: string; author: string } {
+function parseFilenameForMetadata(filename: string): { title: string; author: string; coverImageUrl: string | null } {
   const nameWithoutExt = filename.replace(/\.epub$/i, '');
   
   // Common patterns in filenames: "Author - Title" or "Title - Author"
@@ -225,9 +225,9 @@ function parseFilenameForMetadata(filename: string): { title: string; author: st
       const hasAuthorIndicators = authorIndicators.test(part1.split(' ')[0]);
       
       if (hasAuthorIndicators || part1.length < part2.length) {
-        return { author: part1.trim(), title: part2.trim() };
+        return { author: part1.trim(), title: part2.trim(), coverImageUrl: null };
       } else {
-        return { title: part1.trim(), author: part2.trim() };
+        return { title: part1.trim(), author: part2.trim(), coverImageUrl: null };
       }
     }
   }
@@ -235,7 +235,8 @@ function parseFilenameForMetadata(filename: string): { title: string; author: st
   // If no pattern matches, use the whole filename as title
   return { 
     title: nameWithoutExt.replace(/[-_]/g, ' '), 
-    author: 'Unknown Author' 
+    author: 'Unknown Author',
+    coverImageUrl: null
   };
 }
 
@@ -291,7 +292,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: 'Failed to upload file to storage',
         details: uploadError.message,
-        code: uploadError.statusCode
+        code: (uploadError as { statusCode?: string }).statusCode
       }, { status: 500 });
     }
 

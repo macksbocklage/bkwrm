@@ -44,7 +44,7 @@ export async function GET(
       console.log('No book found with ID:', id, 'for user:', userId);
       
       // Let's also check if the book exists with any user ID
-      const { data: allBooks, error: allBooksError } = await supabase!
+      const { data: allBooks } = await supabase!
         .from('books')
         .select('id, user_id, title')
         .eq('id', id);
@@ -99,7 +99,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Reading progress must be between 0 and 100' }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (last_read_at !== undefined) updateData.last_read_at = last_read_at;
     if (reading_progress !== undefined) updateData.reading_progress = reading_progress;
     if (current_location !== undefined) updateData.current_location = current_location;

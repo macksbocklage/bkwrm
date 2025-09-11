@@ -60,7 +60,7 @@ export default function TestEpubPage() {
         <div className="text-sm text-gray-600">
           <p>1. Copy the file URL from the console logs</p>
           <p>2. Paste it in the input above</p>
-          <p>3. Click "Test File Access" to see if the file is accessible</p>
+          <p>3. Click &quot;Test File Access&quot; to see if the file is accessible</p>
         </div>
       </div>
     </div>

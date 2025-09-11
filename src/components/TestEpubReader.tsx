@@ -36,7 +36,7 @@ export default function TestEpubReader({
   const [isChatbotVisible, setIsChatbotVisible] = useState(false);
   const [bookContent, setBookContent] = useState<string | null>(null);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
-  const renditionRef = useRef<any>(null);
+  const renditionRef = useRef<unknown>(null);
   const lastHighlightText = useRef<string>('');
   const lastHighlightTime = useRef<number>(0);
   const lastSavedLocation = useRef<string | number>(initialLocation || 0);
@@ -72,7 +72,7 @@ export default function TestEpubReader({
         } catch (error) {
           console.error('Error refreshing EPUB layout:', error);
           // Fallback to direct resize if event dispatch fails
-          renditionRef.current?.resize();
+          (renditionRef.current as { resize?: () => void })?.resize?.();
         }
       }, 350); // Slightly longer than the 300ms CSS transition
       
@@ -83,8 +83,8 @@ export default function TestEpubReader({
   // Cleanup global event listeners on unmount
   useEffect(() => {
     return () => {
-      if (renditionRef.current && (renditionRef.current as any)._highlightCleanup) {
-        (renditionRef.current as any)._highlightCleanup();
+      if (renditionRef.current && (renditionRef.current as { _highlightCleanup?: () => void })._highlightCleanup) {
+        (renditionRef.current as { _highlightCleanup: () => void })._highlightCleanup();
       }
     };
   }, []);
@@ -108,7 +108,7 @@ export default function TestEpubReader({
     };
 
     extractContent();
-  }, [filePath]); // Remove isLoadingContent from dependencies to prevent loops
+  }, [filePath, isLoadingContent, bookContent]); // Include all dependencies
   // Debounced progress saving function
   const saveProgress = useCallback(async (currentLocation: string | number, currentProgress: number) => {
     if (!bookId || !onProgressUpdate) return;
@@ -177,9 +177,9 @@ export default function TestEpubReader({
     } else {
       // For CFI strings, try to extract progress from the rendition if available
       let currentProgress = progress;
-      if (renditionRef.current && renditionRef.current.location) {
+      if (renditionRef.current && (renditionRef.current as { location?: { percentage?: number } }).location) {
         // Try to get progress from the rendition
-        const renditionProgress = renditionRef.current.location.percentage;
+        const renditionProgress = (renditionRef.current as { location: { percentage?: number } }).location.percentage;
         if (renditionProgress !== undefined) {
           currentProgress = Math.round(renditionProgress * 100);
           setProgress(currentProgress);
@@ -300,9 +300,9 @@ export default function TestEpubReader({
               break;
             }
           }
-        } catch (error) {
-          // Silently handle cross-origin iframe access errors
-        }
+          } catch {
+            // Silently handle cross-origin iframe access errors
+          }
       }
     }
     
@@ -328,7 +328,7 @@ export default function TestEpubReader({
 
     try {
       // Create a more robust CFI-like identifier
-      const currentLocation = renditionRef.current.location?.start?.cfi || location.toString();
+      const currentLocation = (renditionRef.current as { location?: { start?: { cfi?: string } } }).location?.start?.cfi || location.toString();
       const timestamp = Date.now();
       const startCfi = `${currentLocation}[${selectedText.substring(0, Math.min(20, selectedText.length))}]_${timestamp}`;
       const endCfi = `${currentLocation}[${selectedText.substring(Math.max(0, selectedText.length - 20))}]_${timestamp}`;
@@ -479,8 +479,8 @@ export default function TestEpubReader({
             
             // Set up text selection handling
             
-            rendition.hooks.content.register((contents: any) => {
-              const doc = contents.document;
+            rendition.hooks.content.register((contents: unknown) => {
+              const doc = (contents as { document: Document }).document;
               
               // Enhanced selection handling with debouncing to prevent highlight blinking
               let selectionTimeout: NodeJS.Timeout | null = null;
@@ -522,7 +522,7 @@ export default function TestEpubReader({
               };
               
               // Add event listeners for text selection
-              doc.addEventListener('mouseup', (e: any) => {
+              doc.addEventListener('mouseup', (e: Event) => {
                 handleSelection('mouseup', e);
               });
               
@@ -531,7 +531,7 @@ export default function TestEpubReader({
               });
               
               // Also listen on the window for cases where selection bubbles up
-              doc.defaultView?.addEventListener?.('mouseup', (e: any) => {
+              doc.defaultView?.addEventListener?.('mouseup', (e: Event) => {
                 handleSelection('iframe-window-mouseup', e);
               });
               
@@ -641,10 +641,10 @@ export default function TestEpubReader({
             };
             
             // Store cleanup function for later use
-            (rendition as any)._highlightCleanup = cleanup;
+            (rendition as { _highlightCleanup?: () => void })._highlightCleanup = cleanup;
             
             // Add debug function to window for manual testing
-            (window as any).testHighlight = () => {
+            (window as { testHighlight?: () => void }).testHighlight = () => {
               console.log('🧪 Manual highlight test triggered');
               handleTextSelection();
             };
