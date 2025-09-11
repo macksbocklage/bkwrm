@@ -1,6 +1,9 @@
 'use client';
 
 import { UserButton, useUser } from '@clerk/nextjs';
+
+// Force dynamic rendering to prevent prerendering issues with Clerk
+export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
